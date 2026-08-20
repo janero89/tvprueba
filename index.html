@@ -349,7 +349,7 @@
 
   <div class="stage">
     <div class="video-wrap">
-      <video id="video" controls playsinline></video>
+      <video id="video" controls autoplay playsinline></video>
       <div class="placeholder" id="placeholder">
         <div class="glyph">▚▞</div>
         <p>Selecciona un canal de la lista para empezar a reproducir. WebKit reproduce HLS de forma nativa; para otros motores se usa hls.js como respaldo.</p>
@@ -375,7 +375,15 @@
   const onAir = document.getElementById('onAir');
   const errBox = document.getElementById('errBox');
 
-  let channels = [];   // { name, url, logo, group }
+  // Canal configurado por defecto para reproducción automática
+  const defaultChannel = {
+    name: 'ESPN 4',
+    url: 'https://bufaloweb.com/httpsCON/bufalo6/index.m3u8',
+    logo: '',
+    group: 'Deportes'
+  };
+
+  let channels = [defaultChannel]; // Arreglo inicial con el canal por defecto
   let activeIndex = -1;
   let hls = null;
 
@@ -472,7 +480,6 @@
     const isNativeHls = video.canPlayType('application/vnd.apple.mpegurl');
 
     if (isNativeHls){
-      // WebKit (Safari, iOS/macOS webviews) reproduce HLS de forma nativa
       video.src = ch.url;
       video.play().catch(()=>{});
     } else if (window.Hls && Hls.isSupported()){
@@ -528,12 +535,16 @@
 
   searchInput.addEventListener('input', () => renderChannels(searchInput.value));
 
-  // Reanuda la reproducción si la pestaña/vista vuelve a estar visible
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && video.paused && video.src) {
       video.play().catch(()=>{});
     }
   });
+
+  // ---- Inicialización Automática ----
+  renderChannels('');
+  playChannel(0);
+
 })();
 </script>
 </body>
