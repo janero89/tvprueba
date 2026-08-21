@@ -293,9 +293,64 @@
     margin-bottom:14px;
   }
   .placeholder p{ font-size:12.5px; max-width:320px; line-height:1.6; }
+
+  /* ---- Tap-to-play overlay (fallback when autoplay is blocked) ---- */
+  .tap-overlay{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:14px;
+    background: rgba(0,0,0,0.55);
+    cursor:pointer;
+    z-index:5;
+  }
+  .tap-overlay.show{ display:flex; }
+  .tap-overlay .playbtn{
+    width:64px; height:64px;
+    border-radius:50%;
+    background: var(--teal);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 0 22px rgba(63,208,201,0.5);
+  }
+  .tap-overlay .playbtn::after{
+    content:'';
+    border-style:solid;
+    border-width:12px 0 12px 20px;
+    border-color:transparent transparent transparent #08201e;
+    margin-left:4px;
+  }
+  .tap-overlay span{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.1em;
+    color:var(--text);
+  }
+
+  /* ---- Mute toggle (video starts muted for autoplay to work) ---- */
+  .mute-toggle{
+    position:absolute;
+    bottom:16px; right:16px;
+    background: rgba(16,19,23,0.85);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:8px 12px;
+    border-radius:4px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    cursor:pointer;
+    z-index:4;
+  }
+  .mute-toggle:hover{ border-color: var(--teal); }
+
   .err{
     position:absolute;
-    bottom:16px; left:16px; right:16px;
+    bottom:16px; left:16px; right:120px;
     background: rgba(255,59,48,0.1);
     border:1px solid rgba(255,59,48,0.4);
     color:#ffb3ae;
@@ -304,6 +359,7 @@
     font-family:'IBM Plex Mono', monospace;
     font-size:12px;
     display:none;
+    z-index:4;
   }
 </style>
 </head>
@@ -349,11 +405,16 @@
 
   <div class="stage">
     <div class="video-wrap">
-      <video id="video" controls autoplay playsinline></video>
+      <video id="video" controls playsinline muted></video>
       <div class="placeholder" id="placeholder">
         <div class="glyph">▚▞</div>
         <p>Selecciona un canal de la lista para empezar a reproducir. WebKit reproduce HLS de forma nativa; para otros motores se usa hls.js como respaldo.</p>
       </div>
+      <div class="tap-overlay" id="tapOverlay">
+        <div class="playbtn"></div>
+        <span>TOCA PARA REPRODUCIR</span>
+      </div>
+      <button class="mute-toggle" id="muteToggle">🔇 SIN SONIDO — TOCA PARA ACTIVAR</button>
     </div>
     <div class="err" id="errBox"></div>
   </div>
@@ -374,6 +435,8 @@
   const tunerStatus = document.getElementById('tunerStatus');
   const onAir = document.getElementById('onAir');
   const errBox = document.getElementById('errBox');
+  const tapOverlay = document.getElementById('tapOverlay');
+  const muteToggle = document.getElementById('muteToggle');
 
   // Canal configurado por defecto para reproducción automática
   const defaultChannel = {
@@ -390,13 +453,36 @@
   function showError(msg){
     errBox.textContent = msg;
     errBox.style.display = 'block';
-    setTimeout(()=>{ errBox.style.display = 'none'; }, 6000);
+    setTimeout(()=>{ errBox.style.display = 'none'; }, 8000);
   }
 
   function setStatus(playing){
     onAir.classList.toggle('off', !playing);
     tunerStatus.textContent = playing ? 'TRANSMITIENDO' : 'PAUSADO';
   }
+
+  // Intenta reproducir; si el navegador bloquea el autoplay (política de gesto
+  // de usuario, típico en Chromium embebido como el navegador de Tesla),
+  // muestra un overlay "toca para reproducir" en vez de fallar en silencio.
+  function attemptPlay(){
+    tapOverlay.classList.remove('show');
+    const p = video.play();
+    if (p && typeof p.then === 'function'){
+      p.catch((err) => {
+        tapOverlay.classList.add('show');
+        showError('Reproducción automática bloqueada por el navegador (' + (err && err.name || 'autoplay') + '). Toca el botón de play sobre el vídeo.');
+      });
+    }
+  }
+
+  tapOverlay.addEventListener('click', () => {
+    attemptPlay();
+  });
+
+  muteToggle.addEventListener('click', () => {
+    video.muted = !video.muted;
+    muteToggle.textContent = video.muted ? '🔇 SIN SONIDO — TOCA PARA ACTIVAR' : '🔊 CON SONIDO';
+  });
 
   // ---- Parse M3U/M3U8 (EXTM3U) ----
   function parseM3U(text){
@@ -474,6 +560,7 @@
     tunerNum.textContent = String(index+1).padStart(2,'0');
     tunerName.textContent = ch.name;
     setStatus(false);
+    tapOverlay.classList.remove('show');
 
     if (hls){ hls.destroy(); hls = null; }
 
@@ -481,18 +568,19 @@
 
     if (isNativeHls){
       video.src = ch.url;
-      video.play().catch(()=>{});
+      attemptPlay();
     } else if (window.Hls && Hls.isSupported()){
       hls = new Hls();
       hls.loadSource(ch.url);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+      hls.on(Hls.Events.MANIFEST_PARSED, () => attemptPlay());
       hls.on(Hls.Events.ERROR, (evt, data) => {
-        if (data.fatal) showError('Error reproduciendo el canal: ' + (data.details || 'desconocido'));
+        if (data.fatal) {
+          showError('Error reproduciendo el canal (' + (data.details || 'desconocido') + '). Si el tipo es "networkError", suele ser CORS o certificado del servidor de streaming; con hls.js no hay forma de saltárselo desde el navegador.');
+        }
       });
     } else {
-      video.src = ch.url;
-      video.play().catch(()=> showError('Este navegador no puede reproducir el flujo de este canal.'));
+      showError('Este navegador no soporta HLS ni MSE (Media Source Extensions). No se puede reproducir este flujo aquí.');
     }
 
     renderChannels(searchInput.value);
@@ -500,7 +588,11 @@
 
   video.addEventListener('playing', () => setStatus(true));
   video.addEventListener('pause', () => setStatus(false));
-  video.addEventListener('error', () => showError('No se pudo cargar el canal seleccionado.'));
+  video.addEventListener('error', () => {
+    const codes = {1:'ABORTED',2:'NETWORK',3:'DECODE',4:'SRC_NOT_SUPPORTED'};
+    const code = video.error ? video.error.code : null;
+    showError('No se pudo cargar el canal (' + (codes[code] || 'error desconocido') + '). Si el código es DECODE o SRC_NOT_SUPPORTED, el códec del flujo puede no ser compatible con el decodificador del navegador.');
+  });
 
   loadUrlBtn.addEventListener('click', async () => {
     const url = m3uUrlInput.value.trim();
@@ -537,7 +629,7 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && video.paused && video.src) {
-      video.play().catch(()=>{});
+      attemptPlay();
     }
   });
 
