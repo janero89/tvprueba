@@ -3,115 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>IPTV Tesla — Flotante</title>
+<title>IPTV Tesla EXTREME - DRIVING MODE</title>
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; }
   body {
-    background: #0b0d10;
+    background: #000;
     color: #fff;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
-
-  /* Fondo de ejemplo detrás del reproductor, solo para mostrar que
-     la ventana flota por encima de cualquier contenido de la página */
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #3a4048;
-    font-size: 14px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    z-index: 0;
-    padding: 20px;
-    text-align: center;
-  }
-
-  /* ---------- Ventana flotante ---------- */
-  #floatWin {
-    position: fixed;
-    top: 60px;
-    right: 24px;
-    width: 420px;
-    height: 260px;
-    min-width: 260px;
-    min-height: 160px;
-    background: #000;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08);
-    z-index: 9999;
     display: flex;
     flex-direction: column;
-    touch-action: none;
   }
 
-  #floatWin.dragging, #floatWin.resizing { transition: none; }
-  #floatWin.minimized { height: 44px !important; }
-  #floatWin.minimized .stage { display: none; }
-
-  .win-bar {
-    height: 32px;
-    flex-shrink: 0;
-    background: #16191d;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 10px;
-    cursor: grab;
-    user-select: none;
-    border-bottom: 1px solid #23282f;
-  }
-  .win-bar:active { cursor: grabbing; }
-
-  .win-title {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: #cfd3d9;
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .win-btn {
-    width: 22px; height: 22px;
-    border-radius: 4px;
-    border: none;
-    background: transparent;
-    color: #9aa1ab;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-  .win-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-  .win-btn.close:hover { background: #f44336; color: #fff; }
-
-  .stage {
-    position: relative;
-    flex: 1;
-    min-height: 0;
+  #videoContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: #000;
+    z-index: 1;
   }
 
   #video {
-    position: absolute;
-    width: 1px; height: 1px;
-    opacity: 0;
-    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
 
-  #canvas { display: block; width: 100%; height: 100%; background: #000; }
+  #renderCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    display: none;
+  }
 
   .control-bar {
-    position: absolute;
-    inset: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -120,31 +57,62 @@
   }
 
   .header {
-    background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, transparent 100%);
-    padding: 10px 12px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+    padding: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     pointer-events: auto;
   }
 
-  .channel-info { font-size: 14px; font-weight: bold; text-shadow: 0 2px 6px rgba(0,0,0,0.9); }
+  .channel-info {
+    font-size: 28px;
+    font-weight: bold;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+  }
 
-  .status { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+  }
 
   .status-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #4CAF50; box-shadow: 0 0 6px #4CAF50;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #4CAF50;
+    box-shadow: 0 0 8px #4CAF50;
     animation: pulse 1.5s infinite;
   }
-  .status-dot.error { background: #f44336; box-shadow: 0 0 6px #f44336; }
-  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  .status-dot.error {
+    background: #f44336;
+    box-shadow: 0 0 8px #f44336;
+  }
+
+  .status-dot.driving {
+    background: #FF9800;
+    box-shadow: 0 0 12px #FF9800;
+    animation: pulseDriving 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  @keyframes pulseDriving {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
 
   .footer {
-    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.85) 100%);
-    padding: 8px;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.9) 100%);
+    padding: 20px;
     display: flex;
-    gap: 6px;
+    gap: 10px;
     pointer-events: auto;
     justify-content: center;
     flex-wrap: wrap;
@@ -152,155 +120,378 @@
 
   .btn {
     background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.3);
+    border: 2px solid rgba(255,255,255,0.3);
     color: #fff;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 11px;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-size: 16px;
     font-weight: bold;
     cursor: pointer;
-    min-width: 0;
+    transition: all 0.2s;
+    min-width: 110px;
     text-align: center;
   }
-  .btn:hover { background: rgba(255,255,255,0.25); }
-  .btn:active { background: rgba(255,255,255,0.35); }
-  .btn.play { background: #4CAF50; border-color: #4CAF50; }
+
+  .btn:hover {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.5);
+  }
+
+  .btn:active {
+    background: rgba(255,255,255,0.35);
+  }
+
+  .btn.play { background: #4CAF50; border-color: #4CAF50; font-size: 18px; }
   .btn.play:hover { background: #66BB6A; }
+
   .btn.pause { background: #FF9800; border-color: #FF9800; }
   .btn.pause:hover { background: #FFB74D; }
+
   .btn.mute { background: #2196F3; border-color: #2196F3; }
   .btn.mute:hover { background: #42A5F5; }
-  .btn.fs { background: #009688; border-color: #009688; }
-  .btn.fs:hover { background: #26A69A; }
+
   .btn.channels { background: #673AB7; border-color: #673AB7; }
   .btn.channels:hover { background: #7E57C2; }
 
+  .driving-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 152, 0, 0.9);
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    z-index: 200;
+    display: none;
+    border: 2px solid #FF9800;
+  }
+
+  .driving-indicator.show {
+    display: block;
+    animation: slideIn 0.3s;
+  }
+
+  .speed-info {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    z-index: 200;
+    display: none;
+    border: 1px solid #FF9800;
+  }
+
+  .speed-info.show {
+    display: block;
+  }
+
   .channel-selector {
-    position: absolute;
-    bottom: 46px;
-    left: 0; right: 0;
+    position: fixed;
+    bottom: 100px;
+    left: 0;
+    right: 0;
     background: rgba(0,0,0,0.97);
-    border-top: 2px solid #4CAF50;
-    max-height: 120px;
+    border-top: 3px solid #4CAF50;
+    max-height: 250px;
     overflow-y: auto;
     pointer-events: auto;
     display: none;
     z-index: 50;
   }
-  .channel-selector.show { display: block; }
-  .channel-item { padding: 10px 14px; border-bottom: 1px solid #222; cursor: pointer; font-size: 12px; }
-  .channel-item:hover { background: rgba(76, 175, 80, 0.2); }
+
+  .channel-selector.show {
+    display: block;
+  }
+
+  .channel-item {
+    padding: 18px 24px;
+    border-bottom: 1px solid #222;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background 0.2s;
+  }
+
+  .channel-item:hover {
+    background: rgba(76, 175, 80, 0.2);
+  }
+
   .channel-item.active {
     background: rgba(76, 175, 80, 0.4);
-    border-left: 4px solid #4CAF50;
-    padding-left: 10px;
+    border-left: 5px solid #4CAF50;
+    padding-left: 19px;
     font-weight: bold;
   }
 
   .error-msg {
-    position: absolute;
-    top: 38px; left: 10px; right: 10px;
-    background: rgba(244, 67, 54, 0.92);
-    padding: 8px 10px;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(244, 67, 54, 0.9);
+    padding: 16px 20px;
     border-radius: 6px;
-    font-size: 11px;
+    font-size: 14px;
+    max-width: 400px;
     z-index: 300;
     display: none;
   }
-  .error-msg.show { display: block; }
 
-  .reconnecting {
-    position: absolute;
-    bottom: 46px; right: 10px;
-    background: rgba(255, 152, 0, 0.92);
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 11px;
-    z-index: 300;
-    display: none;
+  .error-msg.show {
+    display: block;
+    animation: slideIn 0.3s;
   }
-  .reconnecting.show { display: block; animation: pulse 1s infinite; }
 
-  /* Manija de redimensionar, esquina inferior derecha */
-  .resize-handle {
-    position: absolute;
-    bottom: 0; right: 0;
-    width: 18px; height: 18px;
-    cursor: nwse-resize;
+  @keyframes slideIn {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .debug-log {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #0f0;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 10px;
+    border-radius: 4px;
+    max-width: 300px;
+    max-height: 150px;
+    overflow-y: auto;
     z-index: 200;
-    background:
-      linear-gradient(135deg, transparent 0 50%, rgba(255,255,255,0.35) 50% 60%, transparent 60% 70%, rgba(255,255,255,0.35) 70% 80%, transparent 80% 100%);
+    display: none;
   }
-  #floatWin.minimized .resize-handle { display: none; }
+
+  .debug-log.show {
+    display: block;
+  }
+
+  .debug-log div {
+    margin: 2px 0;
+  }
 </style>
 </head>
 <body>
 
-<div class="backdrop">Contenido de fondo de la página — el reproductor flota por encima, en cualquier posición</div>
-
-<div id="floatWin">
-  <div class="win-bar" id="winBar">
-    <span class="win-title" id="channelName">IPTV</span>
-    <button class="win-btn" id="minBtn" title="Minimizar">—</button>
-    <button class="win-btn close" id="closeBtn" title="Cerrar">✕</button>
-  </div>
-
-  <div class="stage" id="stage">
-    <video id="video" playsinline muted autoplay></video>
-    <canvas id="canvas"></canvas>
-
-    <div class="control-bar">
-      <div class="header">
-        <div class="status">
-          <div class="status-dot" id="statusDot"></div>
-          <div id="statusText">Listo</div>
-        </div>
-      </div>
-
-      <div class="footer">
-        <button class="btn play" id="playBtn">▶</button>
-        <button class="btn pause" id="pauseBtn">⏸</button>
-        <button class="btn mute" id="muteBtn">🔊</button>
-        <button class="btn fs" id="fsBtn">⛶</button>
-        <button class="btn channels" id="channelsBtn">📻</button>
-      </div>
-    </div>
-
-    <div class="channel-selector" id="channelSelector"></div>
-    <div class="error-msg" id="errorMsg"></div>
-    <div class="reconnecting" id="reconnecting">Reconectando...</div>
-  </div>
-
-  <div class="resize-handle" id="resizeHandle"></div>
+<div id="videoContainer">
+  <video id="video" playsinline muted autoplay crossorigin="anonymous"></video>
 </div>
+
+<canvas id="renderCanvas"></canvas>
+
+<div class="control-bar">
+  <div class="header">
+    <div class="channel-info" id="channelName">IPTV EXTREME</div>
+    <div class="status">
+      <div class="status-dot" id="statusDot"></div>
+      <div id="statusText">Listo</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn play" id="playBtn">▶ PLAY</button>
+    <button class="btn pause" id="pauseBtn">⏸ PAUSA</button>
+    <button class="btn mute" id="muteBtn">🔊 SONIDO</button>
+    <button class="btn channels" id="channelsBtn">📻 CANALES</button>
+  </div>
+</div>
+
+<div class="driving-indicator" id="drivingIndicator">
+  🚗 MODO CONDUCCIÓN ACTIVO
+</div>
+
+<div class="speed-info" id="speedInfo">
+  <div id="speedValue">Velocidad: -- km/h</div>
+  <div id="modeValue">Modo: Detectando...</div>
+</div>
+
+<div class="channel-selector" id="channelSelector"></div>
+<div class="error-msg" id="errorMsg"></div>
+<div class="debug-log" id="debugLog"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
 <script>
 (function() {
-  const floatWin = document.getElementById('floatWin');
-  const winBar = document.getElementById('winBar');
-  const minBtn = document.getElementById('minBtn');
-  const closeBtn = document.getElementById('closeBtn');
-  const resizeHandle = document.getElementById('resizeHandle');
-
-  const stage = document.getElementById('stage');
   const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
+  const canvas = document.getElementById('renderCanvas');
+  const ctx = canvas && canvas.getContext('2d');
   const channelName = document.getElementById('channelName');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const playBtn = document.getElementById('playBtn');
   const pauseBtn = document.getElementById('pauseBtn');
   const muteBtn = document.getElementById('muteBtn');
-  const fsBtn = document.getElementById('fsBtn');
   const channelsBtn = document.getElementById('channelsBtn');
   const channelSelector = document.getElementById('channelSelector');
   const errorMsg = document.getElementById('errorMsg');
-  const reconnecting = document.getElementById('reconnecting');
+  const debugLog = document.getElementById('debugLog');
+  const drivingIndicator = document.getElementById('drivingIndicator');
+  const speedInfo = document.getElementById('speedInfo');
 
-  let audioOnlyMode = false;
-  let drawing = false;
+  let debugMessages = [];
+
+  function debug(msg) {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMsg = `[${timestamp}] ${msg}`;
+    debugMessages.push(msg);
+    if (debugMessages.length > 20) debugMessages.shift();
+
+    debugLog.innerHTML = debugMessages.map(m => `<div>${m}</div>`).join('');
+  }
+
+  function showError(msg, duration = 5000) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('show');
+    debug(`❌ ${msg}`);
+    setTimeout(() => errorMsg.classList.remove('show'), duration);
+  }
+
+  function updateStatus(text, isError = false) {
+    statusText.textContent = text;
+    statusDot.classList.toggle('error', isError);
+    debug(`📊 ${text}`);
+  }
+
+  // ==================== SISTEMA DE DETECCIÓN DE CONDUCCIÓN ====================
+
+  let isDriving = false;
+  let currentSpeed = 0;
+  let lastPosition = null;
+  let drivingThreshold = 5; // km/h mínimos para considerar conducción
+
+  // MÉTODO 1: GEOLOCALIZACIÓN + VELOCIDAD
+  function initGeolocationDetection() {
+    if (!navigator.geolocation) {
+      debug('⚠️ Geolocalización no disponible');
+      return;
+    }
+
+    navigator.geolocation.watchPosition(
+      (position) => {
+        const speed = position.coords.speed; // m/s
+
+        if (speed !== null) {
+          // Convertir m/s a km/h
+          currentSpeed = (speed * 3.6).toFixed(1);
+
+          // Detectar si está en movimiento
+          if (currentSpeed > drivingThreshold) {
+            if (!isDriving) {
+              isDriving = true;
+              debug(`🚗 CONDUCCIÓN DETECTADA - ${currentSpeed} km/h`);
+              updateDrivingUI(true);
+            }
+          } else {
+            if (isDriving) {
+              isDriving = false;
+              debug(`🛑 CONDUCCIÓN DETENIDA`);
+              updateDrivingUI(false);
+            }
+          }
+
+          // Actualizar UI con velocidad
+          document.getElementById('speedValue').textContent = `Velocidad: ${currentSpeed} km/h`;
+        }
+      },
+      (error) => {
+        debug(`⚠️ Error GPS: ${error.message}`);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 1000
+      }
+    );
+  }
+
+  // MÉTODO 2: ACELERÓMETRO (Dispositivo Motion)
+  function initAccelerometerDetection() {
+    if (typeof DeviceMotionEvent === 'undefined') {
+      debug('⚠️ DeviceMotion no disponible');
+      return;
+    }
+
+    let motionThreshold = 8; // m/s² threshold
+    let motionCounter = 0;
+
+    window.addEventListener('devicemotion', (event) => {
+      const accel = event.accelerationIncludingGravity;
+      
+      // Calcular magnitud de aceleración
+      const magnitude = Math.sqrt(
+        accel.x * accel.x + 
+        accel.y * accel.y + 
+        accel.z * accel.z
+      );
+
+      if (magnitude > motionThreshold) {
+        motionCounter++;
+
+        if (motionCounter > 5 && !isDriving) {
+          isDriving = true;
+          debug(`🚗 MOVIMIENTO DETECTADO (acelerómetro)`);
+          updateDrivingUI(true);
+        }
+      } else {
+        motionCounter = 0;
+
+        if (isDriving && currentSpeed < drivingThreshold) {
+          isDriving = false;
+          debug(`🛑 Movimiento detenido`);
+          updateDrivingUI(false);
+        }
+      }
+    });
+  }
+
+  // MÉTODO 3: DETECCIÓN DE VISIBILIDAD + FOCO
+  function initVisibilityDetection() {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        debug('⚠️ App en background');
+      } else {
+        debug('✅ App en foreground');
+        if (isPlaying && isDriving) {
+          video.play().catch(() => {});
+        }
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      if (isPlaying && isDriving) {
+        video.play().catch(() => {});
+      }
+    });
+  }
+
+  // Actualizar UI cuando conduce
+  function updateDrivingUI(driving) {
+    if (driving) {
+      statusDot.classList.add('driving');
+      statusDot.classList.remove('error');
+      drivingIndicator.classList.add('show');
+      speedInfo.classList.add('show');
+      document.getElementById('modeValue').textContent = 'Modo: 🚗 CONDUCCIÓN';
+
+      // Permitir video en pantalla
+      video.style.display = 'block';
+      video.muted = false;
+
+      // Intentar reproducir
+      if (isPlaying) {
+        video.play().catch(() => {});
+      }
+    } else {
+      statusDot.classList.remove('driving');
+      drivingIndicator.classList.remove('show');
+      speedInfo.classList.remove('show');
+      document.getElementById('modeValue').textContent = 'Modo: Estacionado';
+    }
+  }
 
   // LISTA FIJA DE CANALES
   const channels = [
@@ -310,9 +501,9 @@
 
   let currentIndex = 0;
   let hls = null;
-  let reconnectAttempts = 0;
-  const MAX_RECONNECT = 5;
-  let reconnectTimeout = null;
+  let lastCurrentTime = 0;
+  let stallCount = 0;
+  let isPlaying = false;
 
   const HLS_CONFIG = {
     debug: false,
@@ -320,130 +511,11 @@
     startLevel: -1,
     maxBufferLength: 60,
     maxMaxBufferLength: 120,
-    maxBufferSize: 60 * 1000 * 1000,
-    maxLoadingDelay: 4,
-    minAutoBitrate: 0,
-    lowLatencyMode: false,
-    enableWorker: true,
-    workerPath: 'https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.worker.min.js',
     fragLoadingMaxRetry: 10,
     fragLoadingTimeOut: 30000,
     manifestLoadingMaxRetry: 10,
     manifestLoadingTimeOut: 30000,
-    progressive: true,
   };
-
-  // ---------- Arrastrar la ventana ----------
-  let dragOffsetX = 0, dragOffsetY = 0, dragging = false;
-
-  winBar.addEventListener('pointerdown', (e) => {
-    if (e.target !== winBar && e.target.className !== 'win-title') return;
-    dragging = true;
-    floatWin.classList.add('dragging');
-    const rect = floatWin.getBoundingClientRect();
-    dragOffsetX = e.clientX - rect.left;
-    dragOffsetY = e.clientY - rect.top;
-    winBar.setPointerCapture(e.pointerId);
-  });
-
-  winBar.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    let x = e.clientX - dragOffsetX;
-    let y = e.clientY - dragOffsetY;
-    x = Math.max(0, Math.min(window.innerWidth - 60, x));
-    y = Math.max(0, Math.min(window.innerHeight - 40, y));
-    floatWin.style.left = x + 'px';
-    floatWin.style.top = y + 'px';
-    floatWin.style.right = 'auto';
-  });
-
-  function stopDrag(e) {
-    if (!dragging) return;
-    dragging = false;
-    floatWin.classList.remove('dragging');
-  }
-  winBar.addEventListener('pointerup', stopDrag);
-  winBar.addEventListener('pointercancel', stopDrag);
-
-  // ---------- Redimensionar la ventana ----------
-  let resizing = false, resizeStartX = 0, resizeStartY = 0, resizeStartW = 0, resizeStartH = 0;
-
-  resizeHandle.addEventListener('pointerdown', (e) => {
-    resizing = true;
-    floatWin.classList.add('resizing');
-    resizeStartX = e.clientX;
-    resizeStartY = e.clientY;
-    const rect = floatWin.getBoundingClientRect();
-    resizeStartW = rect.width;
-    resizeStartH = rect.height;
-    resizeHandle.setPointerCapture(e.pointerId);
-  });
-
-  resizeHandle.addEventListener('pointermove', (e) => {
-    if (!resizing) return;
-    const w = Math.max(260, resizeStartW + (e.clientX - resizeStartX));
-    const h = Math.max(160, resizeStartH + (e.clientY - resizeStartY));
-    floatWin.style.width = w + 'px';
-    floatWin.style.height = h + 'px';
-    resizeCanvas();
-  });
-
-  function stopResize() {
-    if (!resizing) return;
-    resizing = false;
-    floatWin.classList.remove('resizing');
-  }
-  resizeHandle.addEventListener('pointerup', stopResize);
-  resizeHandle.addEventListener('pointercancel', stopResize);
-
-  // ---------- Minimizar / cerrar ----------
-  minBtn.onclick = () => floatWin.classList.toggle('minimized');
-  closeBtn.onclick = () => { floatWin.style.display = 'none'; video.pause(); stopDrawing(); };
-
-  // ---------- Canvas render loop ----------
-  function resizeCanvas() {
-    canvas.width = stage.clientWidth;
-    canvas.height = stage.clientHeight;
-  }
-  window.addEventListener('resize', resizeCanvas);
-  document.addEventListener('fullscreenchange', resizeCanvas);
-  document.addEventListener('webkitfullscreenchange', resizeCanvas);
-  resizeCanvas();
-
-  function drawFrame() {
-    if (!drawing) return;
-    if (video.readyState >= 2 && video.videoWidth) {
-      const cw = canvas.width, ch = canvas.height;
-      const vw = video.videoWidth, vh = video.videoHeight;
-      const scale = Math.min(cw / vw, ch / vh);
-      const dw = vw * scale, dh = vh * scale;
-      const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
-
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, cw, ch);
-      ctx.drawImage(video, dx, dy, dw, dh);
-    }
-    requestAnimationFrame(drawFrame);
-  }
-
-  function startDrawing() {
-    if (drawing) return;
-    drawing = true;
-    requestAnimationFrame(drawFrame);
-  }
-  function stopDrawing() { drawing = false; }
-
-  // ---------- Helpers ----------
-  function showError(msg, duration = 5000) {
-    errorMsg.textContent = msg;
-    errorMsg.classList.add('show');
-    setTimeout(() => errorMsg.classList.remove('show'), duration);
-  }
-
-  function updateStatus(text, isError = false) {
-    statusText.textContent = text;
-    statusDot.classList.toggle('error', isError);
-  }
 
   function renderChannels() {
     channelSelector.innerHTML = '';
@@ -462,7 +534,6 @@
 
   function setupHLS(url) {
     if (hls) hls.destroy();
-    stopDrawing();
 
     const isNativeHLS = video.canPlayType('application/vnd.apple.mpegurl');
 
@@ -474,89 +545,171 @@
       hls.loadSource(url);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => updateStatus('Cargado'));
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        updateStatus('Cargado');
+      });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              updateStatus('Error red', true);
-              showError('Problema de conexión. Reconectando...');
-              attemptReconnect();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              updateStatus('Error codec', true);
-              showError('Codec no soportado. Intenta otro canal.');
-              break;
-            default:
-              updateStatus('Error', true);
-              showError('Error desconocido');
-              break;
-          }
+          updateStatus('Error', true);
+          showError('Error en stream');
         }
       });
-
-      hls.on(Hls.Events.BUFFER_APPENDING, () => { reconnectAttempts = 0; });
-    } else {
-      showError('HLS no soportado');
-      updateStatus('Error', true);
     }
   }
 
   function playChannel(index) {
-    const channel = channels[index];
     currentIndex = index;
+    const channel = channels[index];
     channelName.textContent = channel.name;
     updateStatus('Cargando...');
-    reconnectAttempts = 0;
     setupHLS(channel.url);
     renderChannels();
   }
 
-  function attemptReconnect() {
-    if (reconnectAttempts >= MAX_RECONNECT) {
-      updateStatus('Reconexión fallida', true);
-      showError('No se puede reconectar. Intenta otro canal.');
-      return;
-    }
-    reconnectAttempts++;
-    reconnecting.classList.add('show');
-    updateStatus('Reconectando...');
-    clearTimeout(reconnectTimeout);
-    reconnectTimeout = setTimeout(() => {
-      playChannel(currentIndex);
-      reconnecting.classList.remove('show');
-    }, 3000 * reconnectAttempts);
-  }
+  // ==================== SISTEMA ANTI-PAUSA EXTREME ====================
 
-  // ---------- Sistema antipausa ----------
-  function forceContinuePlayback() {
-    if (video.paused && !audioOnlyMode && floatWin.style.display !== 'none') {
-      video.muted = false;
-      video.play().then(startDrawing).catch(() => {});
-    }
-  }
+  let canvasActive = false;
+  let antiPauseLevel = 0;
 
-  function antiPauseLoop() {
-    forceContinuePlayback();
-    requestAnimationFrame(antiPauseLoop);
-  }
+  function antiPauseLevel1() {
+    if (!isPlaying || !video.src) return;
 
-  setInterval(() => { forceContinuePlayback(); }, 500);
-
-  // ---------- Controls ----------
-  playBtn.onclick = () => {
     video.muted = false;
-    muteBtn.textContent = '🔊';
-    antiPauseLoop();
+    video.volume = 1;
+
+    if (video.paused) {
+      debug(`🔄 L1: Resumiendo desde pausa`);
+      video.play().catch(() => {});
+    }
+  }
+
+  function antiPauseLevel2() {
+    if (!isPlaying || !video.src) return;
+
+    if (video.currentTime === lastCurrentTime && video.duration > 0) {
+      stallCount++;
+      if (stallCount > 3) {
+        debug(`⚡ L2: Stall detectado (${stallCount}x), saltando...`);
+        video.currentTime = Math.min(video.currentTime + 1, video.duration - 1);
+        video.play().catch(() => {});
+        stallCount = 0;
+      }
+    } else {
+      stallCount = 0;
+    }
+    lastCurrentTime = video.currentTime;
+  }
+
+  function antiPauseLevel3() {
+    if (!isPlaying || !canvasActive || !ctx) return;
+
+    try {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      if (!video.paused) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = 'rgba(0,255,0,0.7)';
+        ctx.font = '14px monospace';
+        ctx.fillText(`${video.currentTime.toFixed(1)}s`, 20, 30);
+      }
+    } catch (e) {
+      debug(`L3 Error: ${e.message}`);
+    }
+  }
+
+  function antiPauseLevel4() {
+    if (!isPlaying) return;
+
+    try {
+      if (!document.fullscreenElement && video.requestFullscreen) {
+        video.requestFullscreen().catch(() => {});
+      }
+
+      if (document.pictureInPictureEnabled && !document.pictureInPictureElement) {
+        video.requestPictureInPicture().catch(() => {});
+      }
+    } catch (e) {
+      debug(`L4 Error: ${e.message}`);
+    }
+  }
+
+  function antiPauseLevel5() {
+    if (!isPlaying || !video.src) return;
+
+    video.muted = false;
+    video.volume = 1;
+
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        video.play().catch(() => {});
+      }, i * 20);
+    }
+
+    if (document.hidden || video.hidden) {
+      debug(`🔴 L5: Activando visibilidad`);
+    }
+  }
+
+  function masterAntiPauseLoop() {
+    antiPauseLevel1();
+    antiPauseLevel2();
+    antiPauseLevel3();
+    antiPauseLevel4();
+    antiPauseLevel5();
+
+    requestAnimationFrame(masterAntiPauseLoop);
+  }
+
+  setInterval(() => {
+    if (isPlaying) {
+      antiPauseLevel1();
+      antiPauseLevel2();
+    }
+  }, 100);
+
+  setInterval(() => {
+    if (isPlaying) {
+      antiPauseLevel4();
+      antiPauseLevel5();
+    }
+  }, 300);
+
+  video.addEventListener('pause', () => {
+    if (isPlaying && video.src) {
+      debug(`🚨 PAUSE EVENT - Reiniciando`);
+      video.muted = false;
+      video.play().catch(() => {});
+
+      for (let i = 1; i <= 5; i++) {
+        setTimeout(() => {
+          video.muted = false;
+          video.play().catch(() => {});
+        }, i * 40);
+      }
+    }
+  }, true);
+
+  // Botones
+  playBtn.onclick = () => {
+    isPlaying = true;
+    video.muted = false;
+    muteBtn.textContent = '🔊 SONIDO ON';
+
+    masterAntiPauseLoop();
+
+    if (video.requestFullscreen) {
+      video.requestFullscreen().catch(() => {});
+    }
 
     const playPromise = video.play();
-    if (playPromise !== undefined) {
+    if (playPromise) {
       playPromise.then(() => {
-        updateStatus('Reproduciendo ▶');
-        resizeCanvas();
-        startDrawing();
-      }).catch(() => {
+        updateStatus('🎬 REPRODUCIENDO SIN PAUSAS');
+        debug(`✅ Playback iniciado`);
+      }).catch(e => {
         updateStatus('Error', true);
         showError('Error de reproducción');
       });
@@ -564,61 +717,37 @@
   };
 
   pauseBtn.onclick = () => {
+    isPlaying = false;
     video.pause();
-    stopDrawing();
     updateStatus('Pausado');
   };
 
   muteBtn.onclick = () => {
     video.muted = !video.muted;
-    muteBtn.textContent = video.muted ? '🔇' : '🔊';
-    updateStatus(video.muted ? 'Silencio' : 'Sonido ON');
+    muteBtn.textContent = video.muted ? '🔇 SILENCIO' : '🔊 SONIDO';
   };
 
-  // Fullscreen sobre #stage (canvas + controles), incluso estando flotante
-  fsBtn.onclick = () => {
-    const isFs = document.fullscreenElement || document.webkitFullscreenElement;
-    if (!isFs) {
-      if (stage.requestFullscreen) stage.requestFullscreen();
-      else if (stage.webkitRequestFullscreen) stage.webkitRequestFullscreen();
-      else showError('Este navegador no soporta pantalla completa.');
-    } else {
-      if (document.exitFullscreen) document.exitFullscreen();
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    }
+  channelsBtn.onclick = () => {
+    channelSelector.classList.toggle('show');
   };
 
-  channelsBtn.onclick = () => channelSelector.classList.toggle('show');
-
-  video.addEventListener('playing', () => {
-    updateStatus('Reproduciendo ▶');
-    startDrawing();
-  });
-
-  video.addEventListener('pause', () => {
-    if (!audioOnlyMode && video.src && floatWin.style.display !== 'none') {
-      setTimeout(() => {
-        video.muted = false;
-        video.play().then(startDrawing).catch(() => {});
-      }, 100);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'd' || e.key === 'D') {
+      debugLog.classList.toggle('show');
     }
   });
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && !video.paused && video.src) {
-      video.play().then(startDrawing).catch(() => {});
-    }
-  });
+  // Inicializar detección de conducción
+  debug('🚀 Iniciando detección de conducción...');
+  initGeolocationDetection();
+  initAccelerometerDetection();
+  initVisibilityDetection();
 
-  window.addEventListener('online', () => updateStatus('Conectado'));
-  window.addEventListener('offline', () => updateStatus('Sin conexión', true));
-
-  video.controls = false;
-
-  // Inicializar
+  // Inicializar canales
   renderChannels();
   playChannel(0);
-  updateStatus('Listo - Toca ▶');
+  updateStatus('Listo - Presiona PLAY');
+  debug(`Sistema EXTREME + DRIVING MODE cargado`);
 })();
 </script>
 </body>
