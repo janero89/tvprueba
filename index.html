@@ -3,57 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>IPTV Tesla EXTREME</title>
+<title>IPTV Tesla COPILOTO</title>
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { 
-    width: 100%; 
-    height: 100%; 
-    overflow: hidden;
-    background: #111;
-  }
-
+  html, body { width: 100%; height: 100%; overflow: hidden; }
   body {
+    background: #000;
     color: #fff;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  /* CONTENEDOR EMULADOR - EFECTO TESLA */
-  .emulator-wrapper {
-    position: relative;
-    width: 90%;
-    max-width: 1280px;
-    aspect-ratio: 16 / 9;
-    background: #000;
-    border-radius: 20px;
-    box-shadow: 0 0 80px rgba(76, 175, 80, 0.3),
-                inset 0 0 40px rgba(0, 0, 0, 0.8);
-    border: 3px solid #1a1a1a;
-    overflow: hidden;
-    animation: emulatorGlow 3s ease-in-out infinite;
-  }
-
-  @keyframes emulatorGlow {
-    0%, 100% { box-shadow: 0 0 80px rgba(76, 175, 80, 0.3),
-                           inset 0 0 40px rgba(0, 0, 0, 0.8); }
-    50% { box-shadow: 0 0 100px rgba(76, 175, 80, 0.5),
-                      inset 0 0 40px rgba(0, 0, 0, 0.8); }
-  }
-
-  .emulator-content {
-    position: relative;
-    width: 100%;
-    height: 100%;
     display: flex;
     flex-direction: column;
   }
 
-  /* PANTALLA DE VIDEO */
   #videoContainer {
     position: absolute;
     top: 0;
@@ -70,9 +33,19 @@
     object-fit: contain;
   }
 
-  /* INTERFAZ DE CONTROL FLOTANTE */
-  .control-bar {
+  #renderCanvas {
     position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    display: none;
+    background: #000;
+  }
+
+  .control-bar {
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
@@ -85,42 +58,30 @@
   }
 
   .header {
-    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
-    padding: 24px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+    padding: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     pointer-events: auto;
-    backdrop-filter: blur(10px);
   }
 
   .channel-info {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: bold;
-    letter-spacing: 2px;
-    text-shadow: 0 4px 12px rgba(0,0,0,0.9);
-  }
-
-  .status-group {
-    display: flex;
-    align-items: center;
-    gap: 16px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
   }
 
   .status {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    background: rgba(0,0,0,0.4);
-    padding: 8px 14px;
-    border-radius: 20px;
-    border: 1px solid rgba(76, 175, 80, 0.3);
+    gap: 12px;
+    font-size: 14px;
   }
 
   .status-dot {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: #4CAF50;
     box-shadow: 0 0 8px #4CAF50;
@@ -132,125 +93,109 @@
     box-shadow: 0 0 8px #f44336;
   }
 
+  .status-dot.driving {
+    background: #FF9800;
+    box-shadow: 0 0 8px #FF9800;
+  }
+
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
 
   .footer {
-    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.85) 100%);
-    padding: 24px;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.9) 100%);
+    padding: 20px;
     display: flex;
-    gap: 12px;
+    gap: 10px;
     pointer-events: auto;
     justify-content: center;
     flex-wrap: wrap;
-    backdrop-filter: blur(10px);
   }
 
   .btn {
-    background: rgba(76, 175, 80, 0.1);
-    border: 2px solid rgba(76, 175, 80, 0.4);
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
     color: #fff;
     padding: 14px 28px;
-    border-radius: 10px;
+    border-radius: 8px;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.2s;
     min-width: 110px;
     text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 1px;
   }
 
   .btn:hover {
-    background: rgba(76, 175, 80, 0.25);
-    border-color: rgba(76, 175, 80, 0.7);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(76, 175, 80, 0.2);
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.5);
   }
 
   .btn:active {
-    background: rgba(76, 175, 80, 0.35);
-    transform: translateY(0);
+    background: rgba(255,255,255,0.35);
   }
 
+  .btn.play { background: #4CAF50; border-color: #4CAF50; font-size: 18px; }
+  .btn.play:hover { background: #66BB6A; }
+
+  .btn.pause { background: #FF9800; border-color: #FF9800; }
+  .btn.pause:hover { background: #FFB74D; }
+
+  .btn.mute { background: #2196F3; border-color: #2196F3; }
+  .btn.mute:hover { background: #42A5F5; }
+
+  .btn.channels { background: #673AB7; border-color: #673AB7; }
+  .btn.channels:hover { background: #7E57C2; }
+
   .channel-selector {
-    position: absolute;
+    position: fixed;
     bottom: 100px;
-    left: 20px;
-    right: 20px;
-    background: rgba(0,0,0,0.95);
-    border: 2px solid rgba(76, 175, 80, 0.5);
-    border-radius: 12px;
-    max-height: 200px;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.97);
+    border-top: 3px solid #4CAF50;
+    max-height: 250px;
     overflow-y: auto;
     pointer-events: auto;
     display: none;
     z-index: 50;
-    backdrop-filter: blur(15px);
   }
 
   .channel-selector.show {
     display: block;
-    animation: slideUp 0.3s ease-out;
-  }
-
-  @keyframes slideUp {
-    from { 
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 
   .channel-item {
-    padding: 16px 20px;
+    padding: 18px 24px;
     border-bottom: 1px solid #222;
     cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    font-size: 18px;
+    transition: background 0.2s;
   }
 
   .channel-item:hover {
-    background: rgba(76, 175, 80, 0.15);
-    padding-left: 24px;
+    background: rgba(76, 175, 80, 0.2);
   }
 
   .channel-item.active {
-    background: rgba(76, 175, 80, 0.3);
-    border-left: 4px solid #4CAF50;
+    background: rgba(76, 175, 80, 0.4);
+    border-left: 5px solid #4CAF50;
+    padding-left: 19px;
     font-weight: bold;
-    color: #4CAF50;
-    padding-left: 16px;
-  }
-
-  .channel-number {
-    min-width: 30px;
-    font-weight: bold;
-    color: #4CAF50;
   }
 
   .error-msg {
-    position: absolute;
-    top: 100px;
+    position: fixed;
+    top: 20px;
     left: 20px;
-    background: rgba(244, 67, 54, 0.95);
+    background: rgba(244, 67, 54, 0.9);
     padding: 16px 20px;
-    border-radius: 8px;
+    border-radius: 6px;
     font-size: 14px;
-    max-width: 300px;
+    max-width: 400px;
     z-index: 300;
     display: none;
-    border-left: 4px solid #f44336;
-    backdrop-filter: blur(10px);
   }
 
   .error-msg.show {
@@ -264,17 +209,17 @@
   }
 
   .debug-log {
-    position: absolute;
+    position: fixed;
     bottom: 20px;
-    left: 20px;
-    background: rgba(0, 0, 0, 0.9);
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
     color: #0f0;
-    font-family: 'Courier New', monospace;
+    font-family: monospace;
     font-size: 11px;
-    padding: 12px;
-    border-radius: 6px;
-    max-width: 280px;
-    max-height: 140px;
+    padding: 10px;
+    border-radius: 4px;
+    max-width: 300px;
+    max-height: 150px;
     overflow-y: auto;
     z-index: 200;
     display: none;
@@ -286,70 +231,64 @@
   }
 
   .debug-log div {
-    margin: 3px 0;
-    line-height: 1.3;
+    margin: 2px 0;
   }
 
-  /* RESPONSIVO */
-  @media (max-width: 768px) {
-    .emulator-wrapper {
-      width: 95%;
-      border-radius: 12px;
-    }
+  .driving-indicator {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background: rgba(255, 152, 0, 0.9);
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 200;
+    display: none;
+    border: 2px solid #FF9800;
+  }
 
-    .channel-info {
-      font-size: 24px;
-    }
-
-    .btn {
-      padding: 12px 20px;
-      font-size: 14px;
-    }
-
-    .header, .footer {
-      padding: 16px;
-    }
+  .driving-indicator.show {
+    display: block;
   }
 </style>
 </head>
 <body>
 
-<div class="emulator-wrapper">
-  <div class="emulator-content">
-    <div id="videoContainer">
-      <video id="video" playsinline muted autoplay crossorigin="anonymous"></video>
+<div id="videoContainer">
+  <video id="video" playsinline muted autoplay crossorigin="anonymous"></video>
+</div>
+
+<canvas id="renderCanvas"></canvas>
+
+<div class="control-bar">
+  <div class="header">
+    <div class="channel-info" id="channelName">IPTV COPILOTO</div>
+    <div class="status">
+      <div class="status-dot" id="statusDot"></div>
+      <div id="statusText">Listo</div>
     </div>
+  </div>
 
-    <div class="control-bar">
-      <div class="header">
-        <div class="channel-info" id="channelName">TESLA IPTV</div>
-        <div class="status-group">
-          <div class="status">
-            <div class="status-dot" id="statusDot"></div>
-            <div id="statusText">Listo</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="footer">
-        <button class="btn" id="playBtn">▶ PLAY</button>
-        <button class="btn" id="pauseBtn">⏸ PAUSA</button>
-        <button class="btn" id="muteBtn">🔊 SONIDO</button>
-        <button class="btn" id="channelsBtn">📡 CANALES</button>
-      </div>
-    </div>
-
-    <div class="channel-selector" id="channelSelector"></div>
-    <div class="error-msg" id="errorMsg"></div>
+  <div class="footer">
+    <button class="btn play" id="playBtn">▶ PLAY</button>
+    <button class="btn pause" id="pauseBtn">⏸ PAUSA</button>
+    <button class="btn mute" id="muteBtn">🔊 SONIDO</button>
+    <button class="btn channels" id="channelsBtn">📻 CANALES</button>
   </div>
 </div>
 
+<div class="channel-selector" id="channelSelector"></div>
+<div class="error-msg" id="errorMsg"></div>
+<div class="driving-indicator" id="drivingIndicator">🚗 MODO CONDUCCIÓN - Canvas Activo</div>
 <div class="debug-log" id="debugLog"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
 <script>
 (function() {
   const video = document.getElementById('video');
+  const canvas = document.getElementById('renderCanvas');
+  const ctx = canvas && canvas.getContext('2d');
   const channelName = document.getElementById('channelName');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
@@ -360,13 +299,16 @@
   const channelSelector = document.getElementById('channelSelector');
   const errorMsg = document.getElementById('errorMsg');
   const debugLog = document.getElementById('debugLog');
+  const drivingIndicator = document.getElementById('drivingIndicator');
 
   let debugMessages = [];
 
   function debug(msg) {
     const timestamp = new Date().toLocaleTimeString();
-    debugMessages.push(`[${timestamp}] ${msg}`);
-    if (debugMessages.length > 15) debugMessages.shift();
+    const logMsg = `[${timestamp}] ${msg}`;
+    debugMessages.push(msg);
+    if (debugMessages.length > 20) debugMessages.shift();
+
     debugLog.innerHTML = debugMessages.map(m => `<div>${m}</div>`).join('');
   }
 
@@ -377,12 +319,14 @@
     setTimeout(() => errorMsg.classList.remove('show'), duration);
   }
 
-  function updateStatus(text, isError = false) {
+  function updateStatus(text, isError = false, isDriving = false) {
     statusText.textContent = text;
     statusDot.classList.toggle('error', isError);
+    statusDot.classList.toggle('driving', isDriving);
+    debug(`📊 ${text}`);
   }
 
-  // CANALES
+  // LISTA FIJA DE CANALES
   const channels = [
     { name: 'Bufalo 5', url: 'https://bufaloweb.com/httpsCON/bufalo5/index.m3u8' },
     { name: 'RTVE 24H', url: 'https://rtvelivestream.akamaized.net/rtvesec/24h/24h_main_dvr.m3u8' }
@@ -390,7 +334,13 @@
 
   let currentIndex = 0;
   let hls = null;
+  let lastCurrentTime = 0;
+  let stallCount = 0;
   let isPlaying = false;
+  let isDriving = false;
+  let useCanvasMode = false;
+  let animationFrameId = null;
+  let mainLoopId = null;
 
   const HLS_CONFIG = {
     debug: false,
@@ -409,7 +359,7 @@
     channels.forEach((ch, i) => {
       const div = document.createElement('div');
       div.className = `channel-item ${i === currentIndex ? 'active' : ''}`;
-      div.innerHTML = `<span class="channel-number">${i + 1}</span><span>${ch.name}</span>`;
+      div.textContent = `${i + 1}. ${ch.name}`;
       div.onclick = () => {
         currentIndex = i;
         playChannel(i);
@@ -454,38 +404,191 @@
     renderChannels();
   }
 
-  // ==================== CONTROL SIMPLE Y LIMPIO ====================
+  // ==================== DETECCIÓN DE MODO CONDUCCIÓN ====================
 
-  // Solo reanudar si se pausa accidentalmente
-  video.addEventListener('pause', () => {
-    if (isPlaying && video.src) {
-      debug(`🔄 Reanudando...`);
-      video.play().catch(() => {});
+  function detectDrivingMode() {
+    debug('✅ Sistema de detección de conducción activado');
+
+    // Monitorear si el video se pausa forzadamente (pausa por Tesla)
+    video.addEventListener('pause', (e) => {
+      if (isPlaying && video.src && video.paused && !isDriving) {
+        debug('🚗 CONDUCCIÓN DETECTADA - Video pausado por Tesla');
+        isDriving = true;
+        switchToCanvasMode();
+        updateStatus('🎬 COPILOTO - Canvas Activo', false, true);
+        drivingIndicator.classList.add('show');
+      }
+    }, true);
+
+    // Monitorear intentos de reproducción (cuando vuelve a estar aparcado)
+    video.addEventListener('playing', (e) => {
+      if (isDriving && useCanvasMode) {
+        debug('🅿️ APARCADO - Video volvió a reproducirse normalmente');
+        isDriving = false;
+        switchToVideoMode();
+        updateStatus('🎬 Reproduciendo', false, false);
+        drivingIndicator.classList.remove('show');
+      }
+    }, true);
+  }
+
+  // ==================== CANVAS RENDERING MODE ====================
+
+  function switchToCanvasMode() {
+    if (useCanvasMode) return;
+
+    useCanvasMode = true;
+    debug('📺 Iniciando renderizado en Canvas');
+
+    // Ocultar video elemento
+    document.getElementById('videoContainer').style.display = 'none';
+
+    // Mostrar canvas
+    canvas.style.display = 'block';
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Audio sigue funcionando desde el video (que está oculto pero reproduce)
+    video.muted = false;
+    video.volume = 1;
+
+    // Forzar play del video oculto
+    setTimeout(() => {
+      video.play().catch((err) => {
+        debug('⚠️ Error en play: ' + err.message);
+      });
+    }, 50);
+
+    // Iniciar loop de renderizado
+    canvasRenderLoop();
+  }
+
+  function switchToVideoMode() {
+    useCanvasMode = false;
+    debug('📺 Volviendo a modo video');
+
+    // Mostrar video
+    document.getElementById('videoContainer').style.display = 'block';
+    canvas.style.display = 'none';
+
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
     }
-  }, true);
+  }
 
-  // BOTONES
+  function canvasRenderLoop() {
+    if (!useCanvasMode) return;
+
+    try {
+      // Limpiar canvas
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Dibujar frame actual del video en el canvas
+      if (!video.paused && video.readyState >= 2) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
+
+      // Mostrar info en canvas
+      ctx.fillStyle = 'rgba(76, 175, 80, 0.8)';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText(`▶ ${video.currentTime.toFixed(1)}s`, 20, 40);
+
+      // Si video está pausado en canvas, intentar reproducir
+      if (video.paused) {
+        video.play().catch(() => {});
+      }
+
+      animationFrameId = requestAnimationFrame(canvasRenderLoop);
+    } catch (e) {
+      debug(`❌ Canvas Error: ${e.message}`);
+    }
+  }
+
+  // ==================== FORZAR PLAY AGRESIVO ====================
+
+  function aggressivePlay() {
+    if (!isPlaying || !video.src) return;
+
+    debug('🔄 Aggressive play iniciado (10 intentos)');
+
+    // Intentos múltiples de play
+    for (let i = 0; i < 10; i++) {
+      setTimeout(() => {
+        video.muted = false;
+        video.volume = 1;
+        video.play().catch(() => {});
+      }, i * 50);
+    }
+  }
+
+  // ==================== LOOP PRINCIPAL ====================
+
+  function startMainLoop() {
+    if (mainLoopId) clearInterval(mainLoopId);
+
+    mainLoopId = setInterval(() => {
+      if (isPlaying) {
+        // Si está en modo conducción y canvas activo, asegurarse que video siga reproduciéndose
+        if (isDriving && useCanvasMode && video.paused) {
+          debug('🔧 Reintentando play en modo canvas...');
+          video.muted = false;
+          video.volume = 1;
+          video.play().catch(() => {});
+        }
+
+        // Detectar stalls
+        if (video.currentTime === lastCurrentTime && video.duration > 0 && !video.paused) {
+          stallCount++;
+          if (stallCount > 3) {
+            debug(`⚡ Stall detectado (${stallCount}x), saltando...`);
+            video.currentTime = Math.min(video.currentTime + 1, video.duration - 1);
+            video.play().catch(() => {});
+            stallCount = 0;
+          }
+        } else {
+          stallCount = 0;
+        }
+
+        lastCurrentTime = video.currentTime;
+      }
+    }, 100);
+  }
+
+  // ==================== EVENT LISTENERS ====================
+
   playBtn.onclick = () => {
     isPlaying = true;
     video.muted = false;
     muteBtn.textContent = '🔊 SONIDO ON';
-    updateStatus('🎬 REPRODUCIENDO');
 
-    const playPromise = video.play();
-    if (playPromise) {
-      playPromise.then(() => {
-        debug(`✅ Playback iniciado`);
-      }).catch(e => {
-        updateStatus('Error', true);
-        showError(`Error: ${e.message}`);
-      });
+    updateStatus('🎬 REPRODUCIENDO');
+    debug('✅ Playback iniciado');
+
+    aggressivePlay();
+    startMainLoop();
+
+    // Intentar fullscreen
+    if (video.requestFullscreen) {
+      video.requestFullscreen().catch(() => {});
     }
   };
 
   pauseBtn.onclick = () => {
     isPlaying = false;
+    useCanvasMode = false;
+    isDriving = false;
+
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    if (mainLoopId) clearInterval(mainLoopId);
+
+    document.getElementById('videoContainer').style.display = 'block';
+    canvas.style.display = 'none';
+
     video.pause();
     updateStatus('Pausado');
+    drivingIndicator.classList.remove('show');
   };
 
   muteBtn.onclick = () => {
@@ -497,17 +600,35 @@
     channelSelector.classList.toggle('show');
   };
 
+  // Toggle debug log
   document.addEventListener('keydown', (e) => {
     if (e.key === 'd' || e.key === 'D') {
       debugLog.classList.toggle('show');
     }
   });
 
-  // INIT
-  debug('🚀 IPTV TESLA EXTREME - CLEAN MODE');
+  // Resize canvas on window resize
+  window.addEventListener('resize', () => {
+    if (useCanvasMode) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+  });
+
+  // Limpiar resources al salir
+  window.addEventListener('beforeunload', () => {
+    if (hls) hls.destroy();
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    if (mainLoopId) clearInterval(mainLoopId);
+  });
+
+  // ==================== INICIALIZAR ====================
+
   renderChannels();
   playChannel(0);
+  detectDrivingMode();
   updateStatus('Listo - Presiona PLAY');
+  debug(`🚀 Sistema COPILOTO TESLA cargado`);
 })();
 </script>
 </body>
