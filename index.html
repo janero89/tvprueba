@@ -310,10 +310,24 @@
 <div class="channel-selector" id="channelSelector"></div>
 
 <div class="load-panel" id="loadPanel">
-  <h2>Cargar Lista IPTV</h2>
-  <input type="text" id="m3uUrl" placeholder="Pega URL de lista M3U/M3U8">
-  <button id="loadUrlBtn">Cargar desde URL</button>
-  <div class="or">— o —</div>
+  <h2>Cargar Stream IPTV</h2>
+
+  <label style="font-size: 12px; color: #888; display: block; margin-bottom: 8px; text-align: left;">
+    Opción 1: URL de Stream Directo (M3U8/HLS)
+  </label>
+  <input type="text" id="streamUrl" placeholder="https://ejemplo.com/stream.m3u8">
+  <button id="loadStreamBtn">▶ Reproducir Stream</button>
+
+  <div class="or">— O —</div>
+
+  <label style="font-size: 12px; color: #888; display: block; margin-bottom: 8px; text-align: left;">
+    Opción 2: URL de Lista M3U/M3U8
+  </label>
+  <input type="text" id="m3uUrl" placeholder="https://ejemplo.com/lista.m3u8">
+  <button id="loadUrlBtn">Cargar Lista</button>
+
+  <div class="or">— O —</div>
+
   <label class="file-input-label" for="m3uFile">
     Haz clic o arrastra archivo .m3u
   </label>
@@ -337,6 +351,8 @@
   const loadBtn = document.getElementById('loadBtn');
   const channelSelector = document.getElementById('channelSelector');
   const loadPanel = document.getElementById('loadPanel');
+  const streamUrl = document.getElementById('streamUrl');
+  const loadStreamBtn = document.getElementById('loadStreamBtn');
   const m3uUrl = document.getElementById('m3uUrl');
   const loadUrlBtn = document.getElementById('loadUrlBtn');
   const m3uFile = document.getElementById('m3uFile');
@@ -354,7 +370,7 @@
   const HLS_CONFIG = {
     debug: false,
     autoStartLoad: true,
-    startLevel: -1, // Auto selecciona mejor calidad compatible
+    startLevel: -1,
     maxBufferLength: 60,
     maxMaxBufferLength: 120,
     maxBufferSize: 60 * 1000 * 1000,
@@ -363,10 +379,15 @@
     lowLatencyMode: false,
     enableWorker: true,
     workerPath: 'https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.worker.min.js',
-    fragLoadingMaxRetry: 6,
+    fragLoadingMaxRetry: 10,  // Más reintentos
     fragLoadingTimeOut: 30000,
-    manifestLoadingMaxRetry: 6,
+    manifestLoadingMaxRetry: 10,
     manifestLoadingTimeOut: 30000,
+    progressive: true,
+    testBandwidth: false,
+    nudgeOffset: 0.1,
+    abrBandwidthFactor: 0.95,
+    abrBandwidthSafetyFactor: 0.9,
   };
 
   // Funciones auxiliares
@@ -572,6 +593,40 @@
 
   loadBtn.onclick = () => {
     loadPanel.style.display = loadPanel.style.display === 'none' ? 'block' : 'none';
+  };
+
+  // Reproducir stream directo
+  loadStreamBtn.onclick = async () => {
+    const url = streamUrl.value.trim();
+    if (!url) return;
+
+    loadStreamBtn.textContent = '⏳ Cargando...';
+
+    try {
+      // Crear canal temporal
+      channels = [{
+        name: 'Stream Directo',
+        url: url,
+        logo: '',
+        group: 'Directo'
+      }];
+
+      currentIndex = 0;
+      channelName.textContent = 'Stream Directo';
+      updateStatus('Cargando stream...');
+      reconnectAttempts = 0;
+
+      setupHLS(url);
+      loadPanel.style.display = 'none';
+      renderChannels();
+
+      showError('Stream cargado. Haz clic en ▶ REPRODUCIR', 3000);
+    } catch (e) {
+      showError(`Error: ${e.message}`);
+      updateStatus('Error cargando stream', true);
+    } finally {
+      loadStreamBtn.textContent = '▶ Reproducir Stream';
+    }
   };
 
   loadUrlBtn.onclick = async () => {
