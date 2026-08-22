@@ -19,7 +19,7 @@
     background: #000;
   }
 
-  /* El <video> real nunca se muestra: es solo la fuente decodificada */
+  /* El <video> real nunca se muestra: solo decodifica el stream */
   #video {
     position: absolute;
     width: 1px;
@@ -35,9 +35,6 @@
     background: #000;
   }
 
-  /* En fullscreen, el navegador centra el elemento pero no siempre
-     respeta el aspect-ratio del contenido -> lo controlamos nosotros
-     dibujando con letterboxing dentro del propio canvas. */
   #stage:fullscreen #canvas,
   #stage:-webkit-full-screen #canvas {
     width: 100vw;
@@ -63,7 +60,7 @@
     pointer-events: auto;
   }
 
-  .channel-info { font-size: 24px; font-weight: bold; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
+  .channel-info { font-size: 28px; font-weight: bold; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
 
   .status { display: flex; align-items: center; gap: 12px; font-size: 14px; }
 
@@ -76,30 +73,30 @@
   @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
   .footer {
-    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%);
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.9) 100%);
     padding: 20px;
     display: flex;
-    flex-wrap: wrap;
     gap: 10px;
     pointer-events: auto;
     justify-content: center;
+    flex-wrap: wrap;
   }
 
   .btn {
     background: rgba(255,255,255,0.15);
     border: 2px solid rgba(255,255,255,0.3);
     color: #fff;
-    padding: 12px 24px;
+    padding: 14px 28px;
     border-radius: 8px;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
-    min-width: 100px;
+    min-width: 110px;
     text-align: center;
   }
   .btn:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.5); }
   .btn:active { background: rgba(255,255,255,0.35); }
-  .btn.play { background: #4CAF50; border-color: #4CAF50; }
+  .btn.play { background: #4CAF50; border-color: #4CAF50; font-size: 18px; }
   .btn.play:hover { background: #66BB6A; }
   .btn.pause { background: #FF9800; border-color: #FF9800; }
   .btn.pause:hover { background: #FFB74D; }
@@ -107,52 +104,31 @@
   .btn.mute:hover { background: #42A5F5; }
   .btn.fs { background: #009688; border-color: #009688; }
   .btn.fs:hover { background: #26A69A; }
+  .btn.channels { background: #673AB7; border-color: #673AB7; }
+  .btn.channels:hover { background: #7E57C2; }
 
   .channel-selector {
     position: absolute;
-    bottom: 80px; left: 0; right: 0;
-    background: rgba(0,0,0,0.95);
-    border-top: 2px solid #333;
-    max-height: 200px;
+    bottom: 100px;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.97);
+    border-top: 3px solid #4CAF50;
+    max-height: 250px;
     overflow-y: auto;
     pointer-events: auto;
     display: none;
     z-index: 50;
   }
   .channel-selector.show { display: block; }
-  .channel-item { padding: 16px 20px; border-bottom: 1px solid #222; cursor: pointer; font-size: 18px; }
+  .channel-item { padding: 18px 24px; border-bottom: 1px solid #222; cursor: pointer; font-size: 18px; }
   .channel-item:hover { background: rgba(76, 175, 80, 0.2); }
-  .channel-item.active { background: rgba(76, 175, 80, 0.4); border-left: 4px solid #4CAF50; padding-left: 16px; }
-
-  .load-panel {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.95);
-    padding: 40px;
-    border-radius: 12px;
-    text-align: center;
-    z-index: 200;
-    pointer-events: auto;
-    min-width: 400px;
-    display: none;
+  .channel-item.active {
+    background: rgba(76, 175, 80, 0.4);
+    border-left: 5px solid #4CAF50;
+    padding-left: 19px;
+    font-weight: bold;
   }
-  .load-panel h2 { margin-bottom: 20px; font-size: 24px; }
-  .load-panel input {
-    width: 100%; padding: 14px; margin-bottom: 16px;
-    border: 1px solid #555; background: #111; color: #fff;
-    border-radius: 6px; font-size: 16px;
-  }
-  .load-panel input:focus { outline: none; border-color: #4CAF50; }
-  .load-panel button {
-    width: 100%; padding: 14px; background: #4CAF50; border: none;
-    color: #fff; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer;
-  }
-  .load-panel button:hover { background: #66BB6A; }
-  .load-panel .or { margin: 20px 0; color: #888; }
-  .file-input-label {
-    display: block; padding: 14px; background: #222;
-    border: 2px dashed #555; border-radius: 6px; cursor: pointer; margin-bottom: 16px;
-  }
-  .file-input-label:hover { border-color: #4CAF50; }
 
   .error-msg {
     position: fixed; top: 20px; left: 20px;
@@ -180,46 +156,23 @@
 
   <div class="control-bar">
     <div class="header">
-      <div class="channel-info" id="channelName">Seleccionar canal</div>
+      <div class="channel-info" id="channelName">IPTV</div>
       <div class="status">
         <div class="status-dot" id="statusDot"></div>
-        <div id="statusText">Esperando...</div>
+        <div id="statusText">Listo</div>
       </div>
     </div>
 
     <div class="footer">
-      <button class="btn play" id="playBtn">▶ REPRODUCIR</button>
-      <button class="btn pause" id="pauseBtn">⏸ PAUSAR</button>
-      <button class="btn mute" id="muteBtn">🔊 SONIDO ON</button>
+      <button class="btn play" id="playBtn">▶ PLAY</button>
+      <button class="btn pause" id="pauseBtn">⏸ PAUSA</button>
+      <button class="btn mute" id="muteBtn">🔊 SONIDO</button>
       <button class="btn fs" id="fsBtn">⛶ PANTALLA COMPLETA</button>
-      <button class="btn" id="channelsBtn" style="background:#673AB7; border-color:#673AB7;">📻 CANALES</button>
-      <button class="btn" id="loadBtn" style="background:#FF5722; border-color:#FF5722;">📂 CARGAR</button>
+      <button class="btn channels" id="channelsBtn">📻 CANALES</button>
     </div>
   </div>
 
   <div class="channel-selector" id="channelSelector"></div>
-
-  <div class="load-panel" id="loadPanel">
-    <h2>Cargar Stream IPTV</h2>
-    <label style="font-size:12px;color:#888;display:block;margin-bottom:8px;text-align:left;">
-      Opción 1: URL de Stream Directo (M3U8/HLS)
-    </label>
-    <input type="text" id="streamUrl" placeholder="https://ejemplo.com/stream.m3u8">
-    <button id="loadStreamBtn">▶ Reproducir Stream</button>
-
-    <div class="or">— O —</div>
-
-    <label style="font-size:12px;color:#888;display:block;margin-bottom:8px;text-align:left;">
-      Opción 2: URL de Lista M3U/M3U8
-    </label>
-    <input type="text" id="m3uUrl" placeholder="https://ejemplo.com/lista.m3u8">
-    <button id="loadUrlBtn">Cargar Lista</button>
-
-    <div class="or">— O —</div>
-
-    <label class="file-input-label" for="m3uFile">Haz clic o arrastra archivo .m3u</label>
-    <input type="file" id="m3uFile" accept=".m3u,.m3u8,text/plain" style="display:none">
-  </div>
 
   <div class="error-msg" id="errorMsg"></div>
   <div class="reconnecting" id="reconnecting">Reconectando...</div>
@@ -240,26 +193,24 @@
   const muteBtn = document.getElementById('muteBtn');
   const fsBtn = document.getElementById('fsBtn');
   const channelsBtn = document.getElementById('channelsBtn');
-  const loadBtn = document.getElementById('loadBtn');
   const channelSelector = document.getElementById('channelSelector');
-  const loadPanel = document.getElementById('loadPanel');
-  const streamUrl = document.getElementById('streamUrl');
-  const loadStreamBtn = document.getElementById('loadStreamBtn');
-  const m3uUrl = document.getElementById('m3uUrl');
-  const loadUrlBtn = document.getElementById('loadUrlBtn');
-  const m3uFile = document.getElementById('m3uFile');
   const errorMsg = document.getElementById('errorMsg');
   const reconnecting = document.getElementById('reconnecting');
 
-  let channels = [];
-  let currentIndex = -1;
+  let audioOnlyMode = false;
+  let drawing = false;
+
+  // LISTA FIJA DE CANALES
+  const channels = [
+    { name: 'Bufalo 5', url: 'https://bufaloweb.com/httpsCON/bufalo5/index.m3u8' },
+    { name: 'RTVE 24H', url: 'https://rtvelivestream.akamaized.net/rtvesec/24h/24h_main_dvr.m3u8' }
+  ];
+
+  let currentIndex = 0;
   let hls = null;
   let reconnectAttempts = 0;
   const MAX_RECONNECT = 5;
   let reconnectTimeout = null;
-  let drawing = false;
-
-  const DEFAULT_CHANNEL_URL = 'https://bufaloweb.com/httpsCON/bufalo3/index.m3u8';
 
   const HLS_CONFIG = {
     debug: false,
@@ -278,10 +229,6 @@
     manifestLoadingMaxRetry: 10,
     manifestLoadingTimeOut: 30000,
     progressive: true,
-    testBandwidth: false,
-    nudgeOffset: 0.1,
-    abrBandwidthFactor: 0.95,
-    abrBandwidthSafetyFactor: 0.9,
   };
 
   // ---------- Canvas render loop ----------
@@ -297,7 +244,6 @@
   function drawFrame() {
     if (!drawing) return;
     if (video.readyState >= 2 && video.videoWidth) {
-      // Letterboxing manual: mantiene el aspect ratio del vídeo dentro del canvas
       const cw = canvas.width, ch = canvas.height;
       const vw = video.videoWidth, vh = video.videoHeight;
       const scale = Math.min(cw / vw, ch / vh);
@@ -317,9 +263,7 @@
     requestAnimationFrame(drawFrame);
   }
 
-  function stopDrawing() {
-    drawing = false;
-  }
+  function stopDrawing() { drawing = false; }
 
   // ---------- Helpers ----------
   function showError(msg, duration = 5000) {
@@ -331,31 +275,6 @@
   function updateStatus(text, isError = false) {
     statusText.textContent = text;
     statusDot.classList.toggle('error', isError);
-  }
-
-  function parseM3U(content) {
-    const lines = content.split('\n');
-    const result = [];
-    let current = null;
-
-    for (let raw of lines) {
-      const line = raw.trim();
-      if (!line) continue;
-
-      if (line.startsWith('#EXTINF')) {
-        const nameMatch = line.split(',');
-        const name = nameMatch.length > 1 ? nameMatch.slice(1).join(',').trim() : 'Canal';
-        const logoMatch = line.match(/tvg-logo="([^"]*)"/i);
-        const groupMatch = line.match(/group-title="([^"]*)"/i);
-        current = { name: name || 'Canal', logo: logoMatch ? logoMatch[1] : '', group: groupMatch ? groupMatch[1] : '' };
-      } else if (!line.startsWith('#') && current) {
-        result.push({ name: current.name, url: line, logo: current.logo, group: current.group });
-        current = null;
-      } else if (!line.startsWith('#') && !current) {
-        result.push({ name: `Canal ${result.length + 1}`, url: line, logo: '', group: '' });
-      }
-    }
-    return result;
   }
 
   function renderChannels() {
@@ -381,33 +300,31 @@
 
     if (isNativeHLS) {
       video.src = url;
-      updateStatus('Cargado - Toca REPRODUCIR');
+      updateStatus('Cargado');
     } else if (window.Hls && Hls.isSupported()) {
       hls = new Hls(HLS_CONFIG);
       hls.loadSource(url);
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        updateStatus('Cargado - Toca REPRODUCIR');
+        updateStatus('Cargado');
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
-        console.error('HLS Error:', data);
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              updateStatus('Error de red - reconectando...', true);
-              showError('Problema de conectividad. Reconectando...');
+              updateStatus('Error red', true);
+              showError('Problema de conexión. Reconectando...');
               attemptReconnect();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              updateStatus('Error de media', true);
-              showError('Codec incompatible con este dispositivo. Intenta otro canal.');
-              setTimeout(() => hls.recoverMediaError(), 1000);
+              updateStatus('Error codec', true);
+              showError('Codec no soportado. Intenta otro canal.');
               break;
             default:
-              updateStatus('Error fatal', true);
-              showError('Error desconocido: ' + (data.details || data.type));
+              updateStatus('Error', true);
+              showError('Error desconocido');
               break;
           }
         }
@@ -415,13 +332,12 @@
 
       hls.on(Hls.Events.BUFFER_APPENDING, () => { reconnectAttempts = 0; });
     } else {
-      showError('Navegador no soporta HLS');
-      updateStatus('Sin soporte HLS', true);
+      showError('HLS no soportado');
+      updateStatus('Error', true);
     }
   }
 
   function playChannel(index) {
-    if (index < 0 || index >= channels.length) return;
     const channel = channels[index];
     currentIndex = index;
     channelName.textContent = channel.name;
@@ -434,38 +350,50 @@
   function attemptReconnect() {
     if (reconnectAttempts >= MAX_RECONNECT) {
       updateStatus('Reconexión fallida', true);
-      showError('No se puede reconectar. Intenta con otro canal.');
+      showError('No se puede reconectar. Intenta otro canal.');
       return;
     }
     reconnectAttempts++;
     reconnecting.classList.add('show');
-    updateStatus(`Reconectando... (${reconnectAttempts}/${MAX_RECONNECT})`);
+    updateStatus(`Reconectando...`);
     clearTimeout(reconnectTimeout);
     reconnectTimeout = setTimeout(() => {
-      if (currentIndex >= 0) playChannel(currentIndex);
+      playChannel(currentIndex);
       reconnecting.classList.remove('show');
     }, 3000 * reconnectAttempts);
   }
+
+  // ---------- Sistema antipausa (se mantiene tal cual) ----------
+  function forceContinuePlayback() {
+    if (video.paused && !audioOnlyMode) {
+      video.muted = false;
+      video.play().then(startDrawing).catch(() => {});
+    }
+  }
+
+  function antiPauseLoop() {
+    forceContinuePlayback();
+    requestAnimationFrame(antiPauseLoop);
+  }
+
+  setInterval(() => { forceContinuePlayback(); }, 500);
 
   // ---------- Controls ----------
   playBtn.onclick = () => {
     video.muted = false;
     muteBtn.textContent = '🔊 SONIDO ON';
 
+    antiPauseLoop();
+
     const playPromise = video.play();
     if (playPromise !== undefined) {
       playPromise.then(() => {
-        updateStatus('Reproduciendo');
+        updateStatus('Reproduciendo ▶ (SIN PAUSAS)');
         resizeCanvas();
         startDrawing();
       }).catch(e => {
-        console.warn('Play error:', e);
-        updateStatus('Error al reproducir', true);
-        let msg = 'Error: ' + (e.name || 'Desconocido');
-        if (e.name === 'NotSupportedError') msg = 'Codec no soportado. Intenta otro canal o lista.';
-        else if (e.name === 'NotAllowedError') msg = 'Reproducción bloqueada. Intenta hacer clic nuevamente.';
-        else if (e.name === 'AbortError') msg = 'Reproducción cancelada. Intenta nuevamente.';
-        showError(msg);
+        updateStatus('Error', true);
+        showError('Error de reproducción');
       });
     }
   };
@@ -478,11 +406,11 @@
 
   muteBtn.onclick = () => {
     video.muted = !video.muted;
-    muteBtn.textContent = video.muted ? '🔇 SONIDO OFF' : '🔊 SONIDO ON';
-    updateStatus(video.muted ? 'Sonido desactivado' : 'Sonido activado');
+    muteBtn.textContent = video.muted ? '🔇 SILENCIO' : '🔊 SONIDO';
+    updateStatus(video.muted ? 'Silencio' : 'Sonido ON');
   };
 
-  // Fullscreen sobre el <div id="stage"> (contiene el canvas + los controles)
+  // Fullscreen sobre #stage (canvas + controles)
   fsBtn.onclick = () => {
     const isFs = document.fullscreenElement || document.webkitFullscreenElement;
     if (!isFs) {
@@ -496,81 +424,22 @@
   };
 
   channelsBtn.onclick = () => channelSelector.classList.toggle('show');
-  loadBtn.onclick = () => { loadPanel.style.display = loadPanel.style.display === 'none' || !loadPanel.style.display ? 'block' : 'none'; };
 
-  loadStreamBtn.onclick = async () => {
-    const url = streamUrl.value.trim();
-    if (!url) return;
-    loadStreamBtn.textContent = '⏳ Cargando...';
-    try {
-      channels = [{ name: 'Stream Directo', url: url, logo: '', group: 'Directo' }];
-      currentIndex = 0;
-      channelName.textContent = 'Stream Directo';
-      updateStatus('Cargando stream...');
-      reconnectAttempts = 0;
-      setupHLS(url);
-      loadPanel.style.display = 'none';
-      renderChannels();
-      showError('Stream cargado. Haz clic en ▶ REPRODUCIR', 3000);
-    } catch (e) {
-      showError(`Error: ${e.message}`);
-      updateStatus('Error cargando stream', true);
-    } finally {
-      loadStreamBtn.textContent = '▶ Reproducir Stream';
+  video.addEventListener('playing', () => {
+    updateStatus('Reproduciendo ▶');
+    startDrawing();
+  });
+
+  // Si Tesla pausa, reiniciar inmediatamente (se mantiene igual)
+  video.addEventListener('pause', () => {
+    if (!audioOnlyMode && video.src) {
+      setTimeout(() => {
+        console.log('Tesla intentó pausar. Reiniciando...');
+        video.muted = false;
+        video.play().then(startDrawing).catch(() => {});
+      }, 100);
     }
-  };
-
-  loadUrlBtn.onclick = async () => {
-    const url = m3uUrl.value.trim();
-    if (!url) return;
-    loadUrlBtn.textContent = 'Cargando...';
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      channels = parseM3U(text);
-      renderChannels();
-      loadPanel.style.display = 'none';
-      updateStatus(`${channels.length} canales cargados`);
-      if (channels.length > 0) playChannel(0);
-    } catch (e) {
-      showError(`Error: ${e.message}`);
-      updateStatus('Error cargando lista', true);
-    } finally {
-      loadUrlBtn.textContent = 'Cargar desde URL';
-    }
-  };
-
-  m3uFile.onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      channels = parseM3U(ev.target.result);
-      renderChannels();
-      loadPanel.style.display = 'none';
-      updateStatus(`${channels.length} canales cargados`);
-      if (channels.length > 0) playChannel(0);
-    };
-    reader.readAsText(file);
-  };
-
-  document.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; };
-  document.ondrop = (e) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith('.m3u') || file.name.endsWith('.m3u8'))) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        channels = parseM3U(ev.target.result);
-        renderChannels();
-        loadPanel.style.display = 'none';
-        updateStatus(`${channels.length} canales cargados`);
-        if (channels.length > 0) playChannel(0);
-      };
-      reader.readAsText(file);
-    }
-  };
+  });
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && !video.paused && video.src) {
@@ -578,21 +447,15 @@
     }
   });
 
-  window.addEventListener('online', () => {
-    updateStatus('Conectado');
-    if (currentIndex >= 0 && !video.src) playChannel(currentIndex);
-  });
+  window.addEventListener('online', () => updateStatus('Conectado'));
   window.addEventListener('offline', () => updateStatus('Sin conexión', true));
 
   video.controls = false;
-  updateStatus('Listo');
 
-  // ---------- Canal por defecto ----------
-  channels = [{ name: 'Canal 3', url: DEFAULT_CHANNEL_URL, logo: '', group: 'Directo' }];
-  currentIndex = 0;
-  channelName.textContent = 'Canal 3';
+  // Inicializar
   renderChannels();
   playChannel(0);
+  updateStatus('Listo - Toca PLAY');
 })();
 </script>
 </body>
