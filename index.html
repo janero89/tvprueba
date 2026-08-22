@@ -3,47 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>IPTV Tesla — Canvas</title>
+<title>IPTV Tesla EXTREME</title>
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
   body {
+    background: #000;
     color: #fff;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
   }
 
-  #stage {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background: #000;
-  }
-
-  /* El <video> real nunca se muestra: solo decodifica el stream */
-  #video {
+  #videoContainer {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  #canvas {
-    display: block;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     background: #000;
+    z-index: 1;
   }
 
-  #stage:fullscreen #canvas,
-  #stage:-webkit-full-screen #canvas {
-    width: 100vw;
-    height: 100vh;
+  #video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  #renderCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    display: none;
   }
 
   .control-bar {
-    position: absolute;
-    inset: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -60,17 +65,37 @@
     pointer-events: auto;
   }
 
-  .channel-info { font-size: 28px; font-weight: bold; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
+  .channel-info {
+    font-size: 28px;
+    font-weight: bold;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+  }
 
-  .status { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+  }
 
   .status-dot {
-    width: 12px; height: 12px; border-radius: 50%;
-    background: #4CAF50; box-shadow: 0 0 8px #4CAF50;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #4CAF50;
+    box-shadow: 0 0 8px #4CAF50;
     animation: pulse 1.5s infinite;
   }
-  .status-dot.error { background: #f44336; box-shadow: 0 0 8px #f44336; }
-  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  .status-dot.error {
+    background: #f44336;
+    box-shadow: 0 0 8px #f44336;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
 
   .footer {
     background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.9) 100%);
@@ -91,24 +116,34 @@
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
+    transition: all 0.2s;
     min-width: 110px;
     text-align: center;
   }
-  .btn:hover { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.5); }
-  .btn:active { background: rgba(255,255,255,0.35); }
+
+  .btn:hover {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.5);
+  }
+
+  .btn:active {
+    background: rgba(255,255,255,0.35);
+  }
+
   .btn.play { background: #4CAF50; border-color: #4CAF50; font-size: 18px; }
   .btn.play:hover { background: #66BB6A; }
+
   .btn.pause { background: #FF9800; border-color: #FF9800; }
   .btn.pause:hover { background: #FFB74D; }
+
   .btn.mute { background: #2196F3; border-color: #2196F3; }
   .btn.mute:hover { background: #42A5F5; }
-  .btn.fs { background: #009688; border-color: #009688; }
-  .btn.fs:hover { background: #26A69A; }
+
   .btn.channels { background: #673AB7; border-color: #673AB7; }
   .btn.channels:hover { background: #7E57C2; }
 
   .channel-selector {
-    position: absolute;
+    position: fixed;
     bottom: 100px;
     left: 0;
     right: 0;
@@ -120,9 +155,23 @@
     display: none;
     z-index: 50;
   }
-  .channel-selector.show { display: block; }
-  .channel-item { padding: 18px 24px; border-bottom: 1px solid #222; cursor: pointer; font-size: 18px; }
-  .channel-item:hover { background: rgba(76, 175, 80, 0.2); }
+
+  .channel-selector.show {
+    display: block;
+  }
+
+  .channel-item {
+    padding: 18px 24px;
+    border-bottom: 1px solid #222;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background 0.2s;
+  }
+
+  .channel-item:hover {
+    background: rgba(76, 175, 80, 0.2);
+  }
+
   .channel-item.active {
     background: rgba(76, 175, 80, 0.4);
     border-left: 5px solid #4CAF50;
@@ -131,74 +180,123 @@
   }
 
   .error-msg {
-    position: fixed; top: 20px; left: 20px;
+    position: fixed;
+    top: 20px;
+    left: 20px;
     background: rgba(244, 67, 54, 0.9);
-    padding: 16px 20px; border-radius: 6px;
-    font-size: 14px; max-width: 400px; z-index: 300; display: none;
+    padding: 16px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    max-width: 400px;
+    z-index: 300;
+    display: none;
   }
-  .error-msg.show { display: block; animation: slideIn 0.3s; }
-  @keyframes slideIn { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-  .reconnecting {
-    position: fixed; bottom: 20px; right: 20px;
-    background: rgba(255, 152, 0, 0.9);
-    padding: 16px 20px; border-radius: 6px;
-    font-size: 14px; z-index: 300; display: none;
+  .error-msg.show {
+    display: block;
+    animation: slideIn 0.3s;
   }
-  .reconnecting.show { display: block; animation: pulse 1s infinite; }
+
+  @keyframes slideIn {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .debug-log {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #0f0;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 10px;
+    border-radius: 4px;
+    max-width: 300px;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 200;
+    display: none;
+  }
+
+  .debug-log.show {
+    display: block;
+  }
+
+  .debug-log div {
+    margin: 2px 0;
+  }
 </style>
 </head>
 <body>
 
-<div id="stage">
-  <video id="video" playsinline muted autoplay></video>
-  <canvas id="canvas"></canvas>
+<div id="videoContainer">
+  <video id="video" playsinline muted autoplay crossorigin="anonymous"></video>
+</div>
 
-  <div class="control-bar">
-    <div class="header">
-      <div class="channel-info" id="channelName">IPTV</div>
-      <div class="status">
-        <div class="status-dot" id="statusDot"></div>
-        <div id="statusText">Listo</div>
-      </div>
-    </div>
+<canvas id="renderCanvas"></canvas>
 
-    <div class="footer">
-      <button class="btn play" id="playBtn">▶ PLAY</button>
-      <button class="btn pause" id="pauseBtn">⏸ PAUSA</button>
-      <button class="btn mute" id="muteBtn">🔊 SONIDO</button>
-      <button class="btn fs" id="fsBtn">⛶ PANTALLA COMPLETA</button>
-      <button class="btn channels" id="channelsBtn">📻 CANALES</button>
+<div class="control-bar">
+  <div class="header">
+    <div class="channel-info" id="channelName">IPTV EXTREME</div>
+    <div class="status">
+      <div class="status-dot" id="statusDot"></div>
+      <div id="statusText">Listo</div>
     </div>
   </div>
 
-  <div class="channel-selector" id="channelSelector"></div>
-
-  <div class="error-msg" id="errorMsg"></div>
-  <div class="reconnecting" id="reconnecting">Reconectando...</div>
+  <div class="footer">
+    <button class="btn play" id="playBtn">▶ PLAY</button>
+    <button class="btn pause" id="pauseBtn">⏸ PAUSA</button>
+    <button class="btn mute" id="muteBtn">🔊 SONIDO</button>
+    <button class="btn channels" id="channelsBtn">📻 CANALES</button>
+  </div>
 </div>
+
+<div class="channel-selector" id="channelSelector"></div>
+<div class="error-msg" id="errorMsg"></div>
+<div class="debug-log" id="debugLog"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
 <script>
 (function() {
-  const stage = document.getElementById('stage');
   const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
+  const canvas = document.getElementById('renderCanvas');
+  const ctx = canvas && canvas.getContext('2d');
   const channelName = document.getElementById('channelName');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const playBtn = document.getElementById('playBtn');
   const pauseBtn = document.getElementById('pauseBtn');
   const muteBtn = document.getElementById('muteBtn');
-  const fsBtn = document.getElementById('fsBtn');
   const channelsBtn = document.getElementById('channelsBtn');
   const channelSelector = document.getElementById('channelSelector');
   const errorMsg = document.getElementById('errorMsg');
-  const reconnecting = document.getElementById('reconnecting');
+  const debugLog = document.getElementById('debugLog');
 
-  let audioOnlyMode = false;
-  let drawing = false;
+  let debugMessages = [];
+
+  function debug(msg) {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMsg = `[${timestamp}] ${msg}`;
+    debugMessages.push(msg);
+    if (debugMessages.length > 20) debugMessages.shift();
+
+    debugLog.innerHTML = debugMessages.map(m => `<div>${m}</div>`).join('');
+  }
+
+  function showError(msg, duration = 5000) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('show');
+    debug(`❌ ${msg}`);
+    setTimeout(() => errorMsg.classList.remove('show'), duration);
+  }
+
+  function updateStatus(text, isError = false) {
+    statusText.textContent = text;
+    statusDot.classList.toggle('error', isError);
+    debug(`📊 ${text}`);
+  }
 
   // LISTA FIJA DE CANALES
   const channels = [
@@ -208,9 +306,9 @@
 
   let currentIndex = 0;
   let hls = null;
-  let reconnectAttempts = 0;
-  const MAX_RECONNECT = 5;
-  let reconnectTimeout = null;
+  let lastCurrentTime = 0;
+  let stallCount = 0;
+  let isPlaying = false;
 
   const HLS_CONFIG = {
     debug: false,
@@ -218,64 +316,11 @@
     startLevel: -1,
     maxBufferLength: 60,
     maxMaxBufferLength: 120,
-    maxBufferSize: 60 * 1000 * 1000,
-    maxLoadingDelay: 4,
-    minAutoBitrate: 0,
-    lowLatencyMode: false,
-    enableWorker: true,
-    workerPath: 'https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.worker.min.js',
     fragLoadingMaxRetry: 10,
     fragLoadingTimeOut: 30000,
     manifestLoadingMaxRetry: 10,
     manifestLoadingTimeOut: 30000,
-    progressive: true,
   };
-
-  // ---------- Canvas render loop ----------
-  function resizeCanvas() {
-    canvas.width = stage.clientWidth;
-    canvas.height = stage.clientHeight;
-  }
-  window.addEventListener('resize', resizeCanvas);
-  document.addEventListener('fullscreenchange', resizeCanvas);
-  document.addEventListener('webkitfullscreenchange', resizeCanvas);
-  resizeCanvas();
-
-  function drawFrame() {
-    if (!drawing) return;
-    if (video.readyState >= 2 && video.videoWidth) {
-      const cw = canvas.width, ch = canvas.height;
-      const vw = video.videoWidth, vh = video.videoHeight;
-      const scale = Math.min(cw / vw, ch / vh);
-      const dw = vw * scale, dh = vh * scale;
-      const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
-
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, cw, ch);
-      ctx.drawImage(video, dx, dy, dw, dh);
-    }
-    requestAnimationFrame(drawFrame);
-  }
-
-  function startDrawing() {
-    if (drawing) return;
-    drawing = true;
-    requestAnimationFrame(drawFrame);
-  }
-
-  function stopDrawing() { drawing = false; }
-
-  // ---------- Helpers ----------
-  function showError(msg, duration = 5000) {
-    errorMsg.textContent = msg;
-    errorMsg.classList.add('show');
-    setTimeout(() => errorMsg.classList.remove('show'), duration);
-  }
-
-  function updateStatus(text, isError = false) {
-    statusText.textContent = text;
-    statusDot.classList.toggle('error', isError);
-  }
 
   function renderChannels() {
     channelSelector.innerHTML = '';
@@ -294,7 +339,6 @@
 
   function setupHLS(url) {
     if (hls) hls.destroy();
-    stopDrawing();
 
     const isNativeHLS = video.canPlayType('application/vnd.apple.mpegurl');
 
@@ -312,85 +356,177 @@
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              updateStatus('Error red', true);
-              showError('Problema de conexión. Reconectando...');
-              attemptReconnect();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              updateStatus('Error codec', true);
-              showError('Codec no soportado. Intenta otro canal.');
-              break;
-            default:
-              updateStatus('Error', true);
-              showError('Error desconocido');
-              break;
-          }
+          updateStatus('Error', true);
+          showError('Error en stream');
         }
       });
-
-      hls.on(Hls.Events.BUFFER_APPENDING, () => { reconnectAttempts = 0; });
-    } else {
-      showError('HLS no soportado');
-      updateStatus('Error', true);
     }
   }
 
   function playChannel(index) {
-    const channel = channels[index];
     currentIndex = index;
+    const channel = channels[index];
     channelName.textContent = channel.name;
     updateStatus('Cargando...');
-    reconnectAttempts = 0;
     setupHLS(channel.url);
     renderChannels();
   }
 
-  function attemptReconnect() {
-    if (reconnectAttempts >= MAX_RECONNECT) {
-      updateStatus('Reconexión fallida', true);
-      showError('No se puede reconectar. Intenta otro canal.');
-      return;
+  // ==================== SISTEMA ANTI-PAUSA EXTREME ====================
+
+  let canvasActive = false;
+  let antiPauseLevel = 0;
+
+  // NIVEL 1: Monitoreo básico
+  function antiPauseLevel1() {
+    if (!isPlaying || !video.src) return;
+
+    video.muted = false;
+    video.volume = 1;
+
+    if (video.paused) {
+      debug(`🔄 L1: Resumiendo desde pausa`);
+      video.play().catch(() => {});
     }
-    reconnectAttempts++;
-    reconnecting.classList.add('show');
-    updateStatus(`Reconectando...`);
-    clearTimeout(reconnectTimeout);
-    reconnectTimeout = setTimeout(() => {
-      playChannel(currentIndex);
-      reconnecting.classList.remove('show');
-    }, 3000 * reconnectAttempts);
   }
 
-  // ---------- Sistema antipausa (se mantiene tal cual) ----------
-  function forceContinuePlayback() {
-    if (video.paused && !audioOnlyMode) {
+  // NIVEL 2: Detección de stall y seek
+  function antiPauseLevel2() {
+    if (!isPlaying || !video.src) return;
+
+    if (video.currentTime === lastCurrentTime && video.duration > 0) {
+      stallCount++;
+      if (stallCount > 3) {
+        debug(`⚡ L2: Stall detectado (${stallCount}x), saltando...`);
+        video.currentTime = Math.min(video.currentTime + 1, video.duration - 1);
+        video.play().catch(() => {});
+        stallCount = 0;
+      }
+    } else {
+      stallCount = 0;
+    }
+    lastCurrentTime = video.currentTime;
+  }
+
+  // NIVEL 3: Canvas rendering como fallback
+  function antiPauseLevel3() {
+    if (!isPlaying || !canvasActive || !ctx) return;
+
+    try {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      if (!video.paused) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Renderizar frame info
+        ctx.fillStyle = 'rgba(0,255,0,0.7)';
+        ctx.font = '14px monospace';
+        ctx.fillText(`${video.currentTime.toFixed(1)}s`, 20, 30);
+      }
+    } catch (e) {
+      debug(`L3 Error: ${e.message}`);
+    }
+  }
+
+  // NIVEL 4: Fullscreen + PiP simultáneo
+  function antiPauseLevel4() {
+    if (!isPlaying) return;
+
+    try {
+      if (!document.fullscreenElement && video.requestFullscreen) {
+        video.requestFullscreen().catch(() => {});
+      }
+
+      if (document.pictureInPictureEnabled && !document.pictureInPictureElement) {
+        video.requestPictureInPicture().catch(() => {});
+      }
+    } catch (e) {
+      debug(`L4 Error: ${e.message}`);
+    }
+  }
+
+  // NIVEL 5: Forzar reproducción agresiva
+  function antiPauseLevel5() {
+    if (!isPlaying || !video.src) return;
+
+    video.muted = false;
+    video.volume = 1;
+
+    // Reintentos múltiples
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        video.play().catch(() => {});
+      }, i * 20);
+    }
+
+    // Forzar visibilidad
+    if (document.hidden || video.hidden) {
+      debug(`🔴 L5: Activando visibilidad`);
+    }
+  }
+
+  // ANTI-PAUSE LOOP MASTER
+  function masterAntiPauseLoop() {
+    antiPauseLevel1(); // Monitoreo básico
+    antiPauseLevel2(); // Stall detection
+    antiPauseLevel3(); // Canvas render
+    antiPauseLevel4(); // Fullscreen+PiP
+    antiPauseLevel5(); // Aggressive play
+
+    requestAnimationFrame(masterAntiPauseLoop);
+  }
+
+  // Intervalos de respaldo
+  setInterval(() => {
+    if (isPlaying) {
+      antiPauseLevel1();
+      antiPauseLevel2();
+    }
+  }, 100);
+
+  setInterval(() => {
+    if (isPlaying) {
+      antiPauseLevel4();
+      antiPauseLevel5();
+    }
+  }, 300);
+
+  // Evento PAUSE agresivo
+  video.addEventListener('pause', () => {
+    if (isPlaying && video.src) {
+      debug(`🚨 PAUSE EVENT - Reiniciando inmediatamente`);
       video.muted = false;
-      video.play().then(startDrawing).catch(() => {});
+      video.play().catch(() => {});
+
+      for (let i = 1; i <= 5; i++) {
+        setTimeout(() => {
+          video.muted = false;
+          video.play().catch(() => {});
+        }, i * 40);
+      }
     }
-  }
+  }, true);
 
-  function antiPauseLoop() {
-    forceContinuePlayback();
-    requestAnimationFrame(antiPauseLoop);
-  }
-
-  setInterval(() => { forceContinuePlayback(); }, 500);
-
-  // ---------- Controls ----------
+  // Botones
   playBtn.onclick = () => {
+    isPlaying = true;
     video.muted = false;
     muteBtn.textContent = '🔊 SONIDO ON';
 
-    antiPauseLoop();
+    // Iniciar anti-pause master
+    masterAntiPauseLoop();
+
+    // Intentar fullscreen
+    if (video.requestFullscreen) {
+      video.requestFullscreen().catch(() => {});
+    }
 
     const playPromise = video.play();
-    if (playPromise !== undefined) {
+    if (playPromise) {
       playPromise.then(() => {
-        updateStatus('Reproduciendo ▶ (SIN PAUSAS)');
-        resizeCanvas();
-        startDrawing();
+        updateStatus('🎬 REPRODUCIENDO SIN PAUSAS');
+        debug(`✅ Playback iniciado`);
       }).catch(e => {
         updateStatus('Error', true);
         showError('Error de reproducción');
@@ -399,63 +535,32 @@
   };
 
   pauseBtn.onclick = () => {
+    isPlaying = false;
     video.pause();
-    stopDrawing();
     updateStatus('Pausado');
   };
 
   muteBtn.onclick = () => {
     video.muted = !video.muted;
     muteBtn.textContent = video.muted ? '🔇 SILENCIO' : '🔊 SONIDO';
-    updateStatus(video.muted ? 'Silencio' : 'Sonido ON');
   };
 
-  // Fullscreen sobre #stage (canvas + controles)
-  fsBtn.onclick = () => {
-    const isFs = document.fullscreenElement || document.webkitFullscreenElement;
-    if (!isFs) {
-      if (stage.requestFullscreen) stage.requestFullscreen();
-      else if (stage.webkitRequestFullscreen) stage.webkitRequestFullscreen();
-      else showError('Este navegador no soporta pantalla completa.');
-    } else {
-      if (document.exitFullscreen) document.exitFullscreen();
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    }
+  channelsBtn.onclick = () => {
+    channelSelector.classList.toggle('show');
   };
 
-  channelsBtn.onclick = () => channelSelector.classList.toggle('show');
-
-  video.addEventListener('playing', () => {
-    updateStatus('Reproduciendo ▶');
-    startDrawing();
-  });
-
-  // Si Tesla pausa, reiniciar inmediatamente (se mantiene igual)
-  video.addEventListener('pause', () => {
-    if (!audioOnlyMode && video.src) {
-      setTimeout(() => {
-        console.log('Tesla intentó pausar. Reiniciando...');
-        video.muted = false;
-        video.play().then(startDrawing).catch(() => {});
-      }, 100);
+  // Toggle debug log
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'd' || e.key === 'D') {
+      debugLog.classList.toggle('show');
     }
   });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && !video.paused && video.src) {
-      video.play().then(startDrawing).catch(e => console.warn('Resume error:', e));
-    }
-  });
-
-  window.addEventListener('online', () => updateStatus('Conectado'));
-  window.addEventListener('offline', () => updateStatus('Sin conexión', true));
-
-  video.controls = false;
 
   // Inicializar
   renderChannels();
   playChannel(0);
-  updateStatus('Listo - Toca PLAY');
+  updateStatus('Listo - Presiona PLAY');
+  debug(`Sistema EXTREME cargado`);
 })();
 </script>
 </body>
