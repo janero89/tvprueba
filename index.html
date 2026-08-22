@@ -29,7 +29,6 @@
     min-height:100vh;
   }
 
-  /* ---- Top bar: tuner display ---- */
   header{
     display:flex;
     align-items:center;
@@ -112,7 +111,6 @@
     50%{opacity:0.25;}
   }
 
-  /* ---- Layout ---- */
   main{
     flex:1;
     display:grid;
@@ -125,7 +123,6 @@
     .stage{ order:1; }
   }
 
-  /* ---- Sidebar ---- */
   aside{
     background: var(--panel);
     border-right:1px solid var(--line);
@@ -258,7 +255,6 @@
     font-family:'IBM Plex Mono', monospace;
   }
 
-  /* ---- Stage ---- */
   .stage{
     display:flex;
     flex-direction:column;
@@ -294,7 +290,6 @@
   }
   .placeholder p{ font-size:12.5px; max-width:320px; line-height:1.6; }
 
-  /* ---- Tap-to-play overlay (fallback when autoplay is blocked) ---- */
   .tap-overlay{
     position:absolute;
     inset:0;
@@ -331,7 +326,6 @@
     color:var(--text);
   }
 
-  /* ---- Mute toggle (video starts muted for autoplay to work) ---- */
   .mute-toggle{
     position:absolute;
     bottom:16px; right:16px;
@@ -438,15 +432,7 @@
   const tapOverlay = document.getElementById('tapOverlay');
   const muteToggle = document.getElementById('muteToggle');
 
-  // Canal configurado por defecto para reproducción automática
-  const defaultChannel = {
-    name: 'ESPN 4',
-    url: 'https://bufaloweb.com/httpsCON/bufalo6/index.m3u8',
-    logo: '',
-    group: 'Deportes'
-  };
-
-  let channels = [defaultChannel]; // Arreglo inicial con el canal por defecto
+  let channels = [];
   let activeIndex = -1;
   let hls = null;
 
@@ -461,16 +447,13 @@
     tunerStatus.textContent = playing ? 'TRANSMITIENDO' : 'PAUSADO';
   }
 
-  // Intenta reproducir; si el navegador bloquea el autoplay (política de gesto
-  // de usuario, típico en Chromium embebido como el navegador de Tesla),
-  // muestra un overlay "toca para reproducir" en vez de fallar en silencio.
   function attemptPlay(){
     tapOverlay.classList.remove('show');
     const p = video.play();
     if (p && typeof p.then === 'function'){
       p.catch((err) => {
         tapOverlay.classList.add('show');
-        showError('Reproducción automática bloqueada por el navegador (' + (err && err.name || 'autoplay') + '). Toca el botón de play sobre el vídeo.');
+        showError('Reproducción automática bloqueada por el navegador (' + (err && err.name || 'autoplay') + '). Toca el botón de play.');
       });
     }
   }
@@ -484,7 +467,7 @@
     muteToggle.textContent = video.muted ? '🔇 SIN SONIDO — TOCA PARA ACTIVAR' : '🔊 CON SONIDO';
   });
 
-  // ---- Parse M3U/M3U8 (EXTM3U) ----
+  // Parse M3U/M3U8
   function parseM3U(text){
     const lines = text.split(/\r?\n/);
     const result = [];
@@ -534,9 +517,10 @@
     for (const c of filtered){
       const el = document.createElement('div');
       el.className = 'channel' + (c.i === activeIndex ? ' active' : '');
+      const logoHtml = c.logo ? `<img class="logo" src="${escapeHtml(c.logo)}" onerror="this.style.visibility='hidden'">` : `<div class="logo"></div>`;
       el.innerHTML = `
         <span class="chno">${String(c.i+1).padStart(2,'0')}</span>
-        ${c.logo ? `<img class="logo" src="${c.logo}" onerror="this.style.visibility='hidden'">` : `<div class="logo"></div>`}
+        ${logoHtml}
         <div class="meta">
           <div class="cname">${escapeHtml(c.name)}</div>
           ${c.group ? `<div class="cgroup">${escapeHtml(c.group)}</div>` : ''}
@@ -548,7 +532,7 @@
   }
 
   function escapeHtml(s){
-    return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
   function playChannel(index){
@@ -576,11 +560,11 @@
       hls.on(Hls.Events.MANIFEST_PARSED, () => attemptPlay());
       hls.on(Hls.Events.ERROR, (evt, data) => {
         if (data.fatal) {
-          showError('Error reproduciendo el canal (' + (data.details || 'desconocido') + '). Si el tipo es "networkError", suele ser CORS o certificado del servidor de streaming; con hls.js no hay forma de saltárselo desde el navegador.');
+          showError('Error reproduciendo el canal (' + (data.details || 'desconocido') + ')');
         }
       });
     } else {
-      showError('Este navegador no soporta HLS ni MSE (Media Source Extensions). No se puede reproducir este flujo aquí.');
+      showError('Este navegador no soporta HLS. No se puede reproducir este flujo aquí.');
     }
 
     renderChannels(searchInput.value);
@@ -591,7 +575,7 @@
   video.addEventListener('error', () => {
     const codes = {1:'ABORTED',2:'NETWORK',3:'DECODE',4:'SRC_NOT_SUPPORTED'};
     const code = video.error ? video.error.code : null;
-    showError('No se pudo cargar el canal (' + (codes[code] || 'error desconocido') + '). Si el código es DECODE o SRC_NOT_SUPPORTED, el códec del flujo puede no ser compatible con el decodificador del navegador.');
+    showError('No se pudo cargar el canal (' + (codes[code] || 'error desconocido') + ')');
   });
 
   loadUrlBtn.addEventListener('click', async () => {
@@ -605,8 +589,9 @@
       channels = parseM3U(text);
       activeIndex = -1;
       renderChannels('');
+      if (channels.length > 0) playChannel(0);
     } catch (e){
-      showError('No se pudo cargar la lista (' + e.message + '). Algunos servidores bloquean solicitudes cruzadas (CORS); prueba subiendo el archivo en su lugar.');
+      showError('No se pudo cargar la lista (' + e.message + ')');
     } finally {
       loadUrlBtn.textContent = 'Cargar';
     }
@@ -620,6 +605,7 @@
       channels = parseM3U(reader.result);
       activeIndex = -1;
       renderChannels('');
+      if (channels.length > 0) playChannel(0);
     };
     reader.onerror = () => showError('No se pudo leer el archivo.');
     reader.readAsText(file);
@@ -632,10 +618,6 @@
       attemptPlay();
     }
   });
-
-  // ---- Inicialización Automática ----
-  renderChannels('');
-  playChannel(0);
 
 })();
 </script>
