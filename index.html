@@ -350,17 +350,23 @@
   const MAX_RECONNECT = 5;
   let reconnectTimeout = null;
 
-  // CONFIGURACIÓN PARA TESLA - BUFFER AGRESIVO
+  // CONFIGURACIÓN PARA TESLA - BUFFER AGRESIVO Y COMPATIBLE
   const HLS_CONFIG = {
     debug: false,
     autoStartLoad: true,
-    startLevel: 0, // Auto
-    maxBufferLength: 60, // 60 segundos de buffer
+    startLevel: -1, // Auto selecciona mejor calidad compatible
+    maxBufferLength: 60,
     maxMaxBufferLength: 120,
-    maxBufferSize: 60 * 1000 * 1000, // 60MB
+    maxBufferSize: 60 * 1000 * 1000,
     maxLoadingDelay: 4,
     minAutoBitrate: 0,
     lowLatencyMode: false,
+    enableWorker: true,
+    workerPath: 'https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.worker.min.js',
+    fragLoadingMaxRetry: 6,
+    fragLoadingTimeOut: 30000,
+    manifestLoadingMaxRetry: 6,
+    manifestLoadingTimeOut: 30000,
   };
 
   // Funciones auxiliares
@@ -461,14 +467,17 @@
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               updateStatus('Error de red - reconectando...', true);
+              showError('Problema de conectividad. Reconectando...');
               attemptReconnect();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              updateStatus('Error de media - recuperando', true);
-              hls.recoverMediaError();
+              updateStatus('Error de media', true);
+              showError('Codec incompatible con este dispositivo. Intenta otro canal.');
+              setTimeout(() => hls.recoverMediaError(), 1000);
               break;
             default:
               updateStatus('Error fatal', true);
+              showError('Error desconocido: ' + (data.details || data.type));
               break;
           }
         }
@@ -530,7 +539,18 @@
       }).catch(e => {
         console.warn('Play error:', e);
         updateStatus('Error al reproducir', true);
-        showError('No se puede reproducir: ' + (e.name || e.message));
+
+        // Mensajes de error específicos
+        let errorMsg = 'Error: ' + (e.name || 'Desconocido');
+        if (e.name === 'NotSupportedError') {
+          errorMsg = 'Codec no soportado. Intenta otro canal o lista.';
+        } else if (e.name === 'NotAllowedError') {
+          errorMsg = 'Reproducción bloqueada. Intenta hacer clic nuevamente.';
+        } else if (e.name === 'AbortError') {
+          errorMsg = 'Reproducción cancelada. Intenta nuevamente.';
+        }
+
+        showError(errorMsg);
       });
     }
   };
