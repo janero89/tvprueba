@@ -359,7 +359,22 @@
   const errorMsg = document.getElementById('errorMsg');
   const reconnecting = document.getElementById('reconnecting');
 
-  let channels = [];
+  // Canales por defecto
+  let channels = [
+    {
+      name: 'Bufalo 5',
+      url: 'https://bufaloweb.com/httpsCON/bufalo5/index.m3u8',
+      logo: '',
+      group: 'Favoritos'
+    },
+    {
+      name: 'RTVE 24H',
+      url: 'https://rtvelivestream.akamaized.net/rtvesec/24h/24h_main_dvr.m3u8',
+      logo: '',
+      group: 'Favoritos'
+    }
+  ];
+
   let currentIndex = -1;
   let hls = null;
   let reconnectAttempts = 0;
@@ -710,7 +725,12 @@
   // Auto-remove audio controls
   video.controls = false;
 
-  updateStatus('Listo');
+  // Cargar canales por defecto
+  renderChannels();
+  playChannel(0);
+  loadPanel.style.display = 'none';
+
+  updateStatus('Listo - Toca REPRODUCIR');
 })();
 </script>
 </body>
