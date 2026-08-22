@@ -407,29 +407,8 @@
   // ==================== DETECCIÓN DE MODO CONDUCCIÓN ====================
 
   function detectDrivingMode() {
-    debug('✅ Sistema de detección de conducción activado');
-
-    // Monitorear si el video se pausa forzadamente (pausa por Tesla)
-    video.addEventListener('pause', (e) => {
-      if (isPlaying && video.src && video.paused && !isDriving) {
-        debug('🚗 CONDUCCIÓN DETECTADA - Video pausado por Tesla');
-        isDriving = true;
-        switchToCanvasMode();
-        updateStatus('🎬 COPILOTO - Canvas Activo', false, true);
-        drivingIndicator.classList.add('show');
-      }
-    }, true);
-
-    // Monitorear intentos de reproducción (cuando vuelve a estar aparcado)
-    video.addEventListener('playing', (e) => {
-      if (isDriving && useCanvasMode) {
-        debug('🅿️ APARCADO - Video volvió a reproducirse normalmente');
-        isDriving = false;
-        switchToVideoMode();
-        updateStatus('🎬 Reproduciendo', false, false);
-        drivingIndicator.classList.remove('show');
-      }
-    }, true);
+    debug('✅ Canvas Mode Permanente - Sin detección de conducción');
+    // Deshabilitado - Canvas siempre activo
   }
 
   // ==================== CANVAS RENDERING MODE ====================
@@ -563,8 +542,11 @@
     video.muted = false;
     muteBtn.textContent = '🔊 SONIDO ON';
 
-    updateStatus('🎬 REPRODUCIENDO');
-    debug('✅ Playback iniciado');
+    updateStatus('🎬 REPRODUCIENDO EN CANVAS');
+    debug('✅ Playback iniciado - Modo Canvas Permanente');
+
+    // Activar Canvas inmediatamente
+    switchToCanvasMode();
 
     aggressivePlay();
     startMainLoop();
@@ -583,7 +565,7 @@
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
     if (mainLoopId) clearInterval(mainLoopId);
 
-    document.getElementById('videoContainer').style.display = 'block';
+    document.getElementById('videoContainer').style.display = 'none';
     canvas.style.display = 'none';
 
     video.pause();
