@@ -2,623 +2,640 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sintonizador IPTV</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>IPTV Tesla</title>
 <style>
-  :root{
-    --bg: #0b0d10;
-    --panel: #101317;
-    --panel-2: #14181d;
-    --line: #23282f;
-    --text: #e7e9ec;
-    --dim: #8b93a1;
-    --signal: #ff3b30;
-    --teal: #3fd0c9;
-    --amber: #f2a93b;
-  }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html,body{height:100%;}
-  body{
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
-    display:flex;
-    flex-direction:column;
-    min-height:100vh;
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; }
+  body {
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
-  header{
-    display:flex;
-    align-items:center;
-    gap:16px;
-    padding:14px 20px;
-    border-bottom:1px solid var(--line);
-    background: linear-gradient(180deg, var(--panel-2), var(--panel));
-  }
-  .brand{
-    display:flex;
-    align-items:baseline;
-    gap:10px;
-  }
-  .brand .mark{
-    font-family:'IBM Plex Mono', monospace;
-    font-weight:700;
-    font-size:13px;
-    letter-spacing:0.14em;
-    color:var(--dim);
-  }
-  .brand h1{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:18px;
-    font-weight:600;
-    letter-spacing:0.02em;
-  }
-  .tuner{
-    margin-left:auto;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-family:'IBM Plex Mono', monospace;
-  }
-  .tuner .num{
-    font-size:28px;
-    font-weight:700;
-    color:var(--teal);
-    min-width:52px;
-    text-align:right;
-    text-shadow: 0 0 14px rgba(63,208,201,0.35);
-  }
-  .tuner .label{
-    display:flex;
-    flex-direction:column;
-    line-height:1.2;
-  }
-  .tuner .label .name{
-    font-size:13px;
-    font-weight:600;
-  }
-  .tuner .label .status{
-    font-size:10px;
-    letter-spacing:0.12em;
-    color:var(--dim);
-  }
-  .on-air{
-    display:flex;
-    align-items:center;
-    gap:6px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    letter-spacing:0.14em;
-    color:var(--signal);
-    padding:5px 10px;
-    border:1px solid rgba(255,59,48,0.4);
-    border-radius:3px;
-    background: rgba(255,59,48,0.06);
-  }
-  .on-air .dot{
-    width:6px; height:6px;
-    border-radius:50%;
-    background:var(--signal);
-    box-shadow:0 0 8px var(--signal);
-    animation: pulse 1.6s ease-in-out infinite;
-  }
-  .on-air.off{ color: var(--dim); border-color: var(--line); background: transparent; }
-  .on-air.off .dot{ background: var(--dim); box-shadow:none; animation:none; }
-  @keyframes pulse{
-    0%,100%{opacity:1;}
-    50%{opacity:0.25;}
+  /* Video ocupar toda la pantalla */
+  #video {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    object-fit: contain;
   }
 
-  main{
-    flex:1;
-    display:grid;
-    grid-template-columns: 340px 1fr;
-    min-height:0;
-  }
-  @media (max-width: 820px){
-    main{ grid-template-columns: 1fr; }
-    aside{ order:2; max-height:44vh; }
-    .stage{ order:1; }
-  }
-
-  aside{
-    background: var(--panel);
-    border-right:1px solid var(--line);
-    display:flex;
-    flex-direction:column;
-    min-height:0;
-  }
-  .loader{
-    padding:16px;
-    border-bottom:1px solid var(--line);
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-  .loader label{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:10px;
-    letter-spacing:0.14em;
-    color:var(--dim);
-  }
-  .loader .row{ display:flex; gap:8px; }
-  .loader input[type=text]{
-    flex:1;
-    background: var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:4px;
-    color:var(--text);
-    padding:9px 10px;
-    font-size:13px;
-    font-family:'Inter', sans-serif;
-  }
-  .loader input[type=text]:focus{ outline:none; border-color: var(--teal); }
-  .loader button{
-    background: var(--teal);
-    color:#08201e;
-    border:none;
-    border-radius:4px;
-    padding:0 14px;
-    font-weight:700;
-    font-size:12px;
-    letter-spacing:0.04em;
-    cursor:pointer;
-    font-family:'IBM Plex Mono', monospace;
-  }
-  .loader button:hover{ filter:brightness(1.08); }
-  .loader .or{
-    font-size:10px;
-    color:var(--dim);
-    text-align:center;
-    letter-spacing:0.1em;
-  }
-  .loader .filebtn{
-    background: var(--panel-2);
-    border:1px dashed var(--line);
-    color:var(--dim);
-    text-align:center;
-    padding:9px;
-    border-radius:4px;
-    font-size:12px;
-    cursor:pointer;
-  }
-  .loader .filebtn:hover{ border-color:var(--teal); color:var(--text); }
-  .loader input[type=file]{ display:none; }
-
-  .search{
-    padding:10px 16px;
-    border-bottom:1px solid var(--line);
-  }
-  .search input{
-    width:100%;
-    background: var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:4px;
-    color:var(--text);
-    padding:8px 10px;
-    font-size:13px;
-  }
-  .search input:focus{ outline:none; border-color:var(--amber); }
-
-  .channels{
-    overflow-y:auto;
-    flex:1;
-  }
-  .channel{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:10px 16px;
-    border-bottom:1px solid var(--line);
-    cursor:pointer;
-  }
-  .channel:hover{ background: var(--panel-2); }
-  .channel.active{
-    background: rgba(63,208,201,0.08);
-    box-shadow: inset 3px 0 0 var(--teal);
-  }
-  .channel .chno{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:13px;
-    font-weight:700;
-    color:var(--amber);
-    min-width:28px;
-  }
-  .channel .logo{
-    width:32px; height:32px;
-    border-radius:4px;
-    background: var(--panel-2);
-    border:1px solid var(--line);
-    object-fit:cover;
-    flex-shrink:0;
-  }
-  .channel .meta{ min-width:0; }
-  .channel .cname{
-    font-size:13px;
-    font-weight:500;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .channel .cgroup{
-    font-size:10.5px;
-    color:var(--dim);
-    letter-spacing:0.03em;
-  }
-  .empty-msg{
-    padding:28px 20px;
-    color:var(--dim);
-    font-size:12.5px;
-    line-height:1.6;
-    font-family:'IBM Plex Mono', monospace;
+  /* Barra de control MINIMALISTA */
+  .control-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 100;
   }
 
-  .stage{
-    display:flex;
-    flex-direction:column;
-    min-height:0;
-    background:#000;
-  }
-  .video-wrap{
-    flex:1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    position:relative;
-    background:#000;
-    background-image:
-      repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
-  }
-  video{
-    width:100%;
-    height:100%;
-    max-height:100%;
-    object-fit:contain;
-    background:#000;
-  }
-  .placeholder{
-    text-align:center;
-    color:var(--dim);
-    font-family:'IBM Plex Mono', monospace;
-  }
-  .placeholder .glyph{
-    font-size:44px;
-    color:var(--line);
-    margin-bottom:14px;
-  }
-  .placeholder p{ font-size:12.5px; max-width:320px; line-height:1.6; }
-
-  .tap-overlay{
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-    gap:14px;
-    background: rgba(0,0,0,0.55);
-    cursor:pointer;
-    z-index:5;
-  }
-  .tap-overlay.show{ display:flex; }
-  .tap-overlay .playbtn{
-    width:64px; height:64px;
-    border-radius:50%;
-    background: var(--teal);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    box-shadow: 0 0 22px rgba(63,208,201,0.5);
-  }
-  .tap-overlay .playbtn::after{
-    content:'';
-    border-style:solid;
-    border-width:12px 0 12px 20px;
-    border-color:transparent transparent transparent #08201e;
-    margin-left:4px;
-  }
-  .tap-overlay span{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    letter-spacing:0.1em;
-    color:var(--text);
+  /* Header - info del canal */
+  .header {
+    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: auto;
   }
 
-  .mute-toggle{
-    position:absolute;
-    bottom:16px; right:16px;
-    background: rgba(16,19,23,0.85);
-    border:1px solid var(--line);
-    color:var(--text);
-    padding:8px 12px;
-    border-radius:4px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    letter-spacing:0.06em;
-    cursor:pointer;
-    z-index:4;
+  .channel-info {
+    font-size: 24px;
+    font-weight: bold;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
   }
-  .mute-toggle:hover{ border-color: var(--teal); }
 
-  .err{
-    position:absolute;
-    bottom:16px; left:16px; right:120px;
-    background: rgba(255,59,48,0.1);
-    border:1px solid rgba(255,59,48,0.4);
-    color:#ffb3ae;
-    padding:10px 12px;
-    border-radius:4px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    display:none;
-    z-index:4;
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+  }
+
+  .status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #4CAF50;
+    box-shadow: 0 0 8px #4CAF50;
+    animation: pulse 1.5s infinite;
+  }
+
+  .status-dot.error {
+    background: #f44336;
+    box-shadow: 0 0 8px #f44336;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Footer - controles grandes y fáciles */
+  .footer {
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%);
+    padding: 20px;
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+    justify-content: center;
+  }
+
+  .btn {
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 100px;
+    text-align: center;
+  }
+
+  .btn:hover {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.5);
+  }
+
+  .btn:active {
+    background: rgba(255,255,255,0.35);
+  }
+
+  .btn.play { background: #4CAF50; border-color: #4CAF50; }
+  .btn.play:hover { background: #66BB6A; }
+
+  .btn.pause { background: #FF9800; border-color: #FF9800; }
+  .btn.pause:hover { background: #FFB74D; }
+
+  .btn.mute { background: #2196F3; border-color: #2196F3; }
+  .btn.mute:hover { background: #42A5F5; }
+
+  /* Selector de canales - GRANDE Y FÁCIL */
+  .channel-selector {
+    position: absolute;
+    bottom: 80px;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.95);
+    border-top: 2px solid #333;
+    max-height: 200px;
+    overflow-y: auto;
+    pointer-events: auto;
+    display: none;
+    z-index: 50;
+  }
+
+  .channel-selector.show {
+    display: block;
+  }
+
+  .channel-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid #222;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background 0.2s;
+  }
+
+  .channel-item:hover {
+    background: rgba(76, 175, 80, 0.2);
+  }
+
+  .channel-item.active {
+    background: rgba(76, 175, 80, 0.4);
+    border-left: 4px solid #4CAF50;
+    padding-left: 16px;
+  }
+
+  /* Carga de lista */
+  .load-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.95);
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+    z-index: 200;
+    pointer-events: auto;
+    min-width: 400px;
+  }
+
+  .load-panel h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+
+  .load-panel input {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 16px;
+    border: 1px solid #555;
+    background: #111;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 16px;
+  }
+
+  .load-panel input:focus {
+    outline: none;
+    border-color: #4CAF50;
+  }
+
+  .load-panel button {
+    width: 100%;
+    padding: 14px;
+    background: #4CAF50;
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .load-panel button:hover {
+    background: #66BB6A;
+  }
+
+  .load-panel .or {
+    margin: 20px 0;
+    color: #888;
+  }
+
+  .file-input-label {
+    display: block;
+    padding: 14px;
+    background: #222;
+    border: 2px dashed #555;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+  }
+
+  .file-input-label:hover {
+    border-color: #4CAF50;
+  }
+
+  /* Error messages */
+  .error-msg {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(244, 67, 54, 0.9);
+    padding: 16px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    max-width: 400px;
+    z-index: 300;
+    display: none;
+  }
+
+  .error-msg.show {
+    display: block;
+    animation: slideIn 0.3s;
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* Indicador de reconexión */
+  .reconnecting {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 152, 0, 0.9);
+    padding: 16px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 300;
+    display: none;
+  }
+
+  .reconnecting.show {
+    display: block;
+    animation: pulse 1s infinite;
+  }
+
+  /* Ocultar controles nativos del video */
+  video::-webkit-media-controls {
+    display: none !important;
+  }
+
+  video::-moz-media-controls {
+    display: none !important;
   }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="brand">
-    <span class="mark">// SINTONIZADOR</span>
-    <h1>IPTV Player</h1>
-  </div>
-  <div class="tuner">
-    <span class="num" id="tunerNum">--</span>
-    <div class="label">
-      <span class="name" id="tunerName">Sin señal</span>
-      <span class="status" id="tunerStatus">EN ESPERA</span>
-    </div>
-  </div>
-  <div class="on-air off" id="onAir"><span class="dot"></span>AL AIRE</div>
-</header>
+<video id="video" playsinline muted autoplay></video>
 
-<main>
-  <aside>
-    <div class="loader">
-      <label for="m3uUrl">CARGAR LISTA M3U / M3U8 (URL)</label>
-      <div class="row">
-        <input type="text" id="m3uUrl" placeholder="https://ejemplo.com/lista.m3u8">
-        <button id="loadUrlBtn">Cargar</button>
-      </div>
-      <div class="or">— o —</div>
-      <label class="filebtn" for="m3uFile">Subir archivo .m3u / .m3u8</label>
-      <input type="file" id="m3uFile" accept=".m3u,.m3u8,text/plain">
+<div class="control-bar">
+  <div class="header">
+    <div class="channel-info" id="channelName">Seleccionar canal</div>
+    <div class="status">
+      <div class="status-dot" id="statusDot"></div>
+      <div id="statusText">Esperando...</div>
     </div>
-    <div class="search">
-      <input type="text" id="searchInput" placeholder="Buscar canal...">
-    </div>
-    <div class="channels" id="channelList">
-      <div class="empty-msg">
-        Todavía no hay ninguna lista cargada.<br><br>
-        Pega la URL de una playlist M3U/M3U8 arriba, o sube un archivo local, para ver los canales aquí.
-      </div>
-    </div>
-  </aside>
-
-  <div class="stage">
-    <div class="video-wrap">
-      <video id="video" controls playsinline muted></video>
-      <div class="placeholder" id="placeholder">
-        <div class="glyph">▚▞</div>
-        <p>Selecciona un canal de la lista para empezar a reproducir. WebKit reproduce HLS de forma nativa; para otros motores se usa hls.js como respaldo.</p>
-      </div>
-      <div class="tap-overlay" id="tapOverlay">
-        <div class="playbtn"></div>
-        <span>TOCA PARA REPRODUCIR</span>
-      </div>
-      <button class="mute-toggle" id="muteToggle">🔇 SIN SONIDO — TOCA PARA ACTIVAR</button>
-    </div>
-    <div class="err" id="errBox"></div>
   </div>
-</main>
+
+  <div class="footer">
+    <button class="btn play" id="playBtn">▶ REPRODUCIR</button>
+    <button class="btn pause" id="pauseBtn">⏸ PAUSAR</button>
+    <button class="btn mute" id="muteBtn">🔊 SONIDO ON</button>
+    <button class="btn" id="channelsBtn" style="background:#673AB7; border-color:#673AB7;">📻 CANALES</button>
+    <button class="btn" id="loadBtn" style="background:#FF5722; border-color:#FF5722;">📂 CARGAR</button>
+  </div>
+</div>
+
+<div class="channel-selector" id="channelSelector"></div>
+
+<div class="load-panel" id="loadPanel">
+  <h2>Cargar Lista IPTV</h2>
+  <input type="text" id="m3uUrl" placeholder="Pega URL de lista M3U/M3U8">
+  <button id="loadUrlBtn">Cargar desde URL</button>
+  <div class="or">— o —</div>
+  <label class="file-input-label" for="m3uFile">
+    Haz clic o arrastra archivo .m3u
+  </label>
+  <input type="file" id="m3uFile" accept=".m3u,.m3u8,text/plain" style="display:none">
+</div>
+
+<div class="error-msg" id="errorMsg"></div>
+<div class="reconnecting" id="reconnecting">Reconectando...</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
 <script>
-(function(){
+(function() {
   const video = document.getElementById('video');
-  const placeholder = document.getElementById('placeholder');
-  const channelList = document.getElementById('channelList');
-  const searchInput = document.getElementById('searchInput');
-  const m3uUrlInput = document.getElementById('m3uUrl');
+  const channelName = document.getElementById('channelName');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const playBtn = document.getElementById('playBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const muteBtn = document.getElementById('muteBtn');
+  const channelsBtn = document.getElementById('channelsBtn');
+  const loadBtn = document.getElementById('loadBtn');
+  const channelSelector = document.getElementById('channelSelector');
+  const loadPanel = document.getElementById('loadPanel');
+  const m3uUrl = document.getElementById('m3uUrl');
   const loadUrlBtn = document.getElementById('loadUrlBtn');
   const m3uFile = document.getElementById('m3uFile');
-  const tunerNum = document.getElementById('tunerNum');
-  const tunerName = document.getElementById('tunerName');
-  const tunerStatus = document.getElementById('tunerStatus');
-  const onAir = document.getElementById('onAir');
-  const errBox = document.getElementById('errBox');
-  const tapOverlay = document.getElementById('tapOverlay');
-  const muteToggle = document.getElementById('muteToggle');
+  const errorMsg = document.getElementById('errorMsg');
+  const reconnecting = document.getElementById('reconnecting');
 
   let channels = [];
-  let activeIndex = -1;
+  let currentIndex = -1;
   let hls = null;
+  let reconnectAttempts = 0;
+  const MAX_RECONNECT = 5;
+  let reconnectTimeout = null;
 
-  function showError(msg){
-    errBox.textContent = msg;
-    errBox.style.display = 'block';
-    setTimeout(()=>{ errBox.style.display = 'none'; }, 8000);
+  // CONFIGURACIÓN PARA TESLA - BUFFER AGRESIVO
+  const HLS_CONFIG = {
+    debug: false,
+    autoStartLoad: true,
+    startLevel: 0, // Auto
+    maxBufferLength: 60, // 60 segundos de buffer
+    maxMaxBufferLength: 120,
+    maxBufferSize: 60 * 1000 * 1000, // 60MB
+    maxLoadingDelay: 4,
+    minAutoBitrate: 0,
+    lowLatencyMode: false,
+  };
+
+  // Funciones auxiliares
+  function showError(msg, duration = 5000) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('show');
+    setTimeout(() => errorMsg.classList.remove('show'), duration);
   }
 
-  function setStatus(playing){
-    onAir.classList.toggle('off', !playing);
-    tunerStatus.textContent = playing ? 'TRANSMITIENDO' : 'PAUSADO';
+  function updateStatus(text, isError = false) {
+    statusText.textContent = text;
+    statusDot.classList.toggle('error', isError);
   }
 
-  function attemptPlay(){
-    tapOverlay.classList.remove('show');
-    const p = video.play();
-    if (p && typeof p.then === 'function'){
-      p.catch((err) => {
-        tapOverlay.classList.add('show');
-        showError('Reproducción automática bloqueada por el navegador (' + (err && err.name || 'autoplay') + '). Toca el botón de play.');
-      });
-    }
-  }
-
-  tapOverlay.addEventListener('click', () => {
-    attemptPlay();
-  });
-
-  muteToggle.addEventListener('click', () => {
-    video.muted = !video.muted;
-    muteToggle.textContent = video.muted ? '🔇 SIN SONIDO — TOCA PARA ACTIVAR' : '🔊 CON SONIDO';
-  });
-
-  // Parse M3U/M3U8
-  function parseM3U(text){
-    const lines = text.split(/\r?\n/);
+  function parseM3U(content) {
+    const lines = content.split('\n');
     const result = [];
     let current = null;
-    for (let raw of lines){
+
+    for (let raw of lines) {
       const line = raw.trim();
       if (!line) continue;
-      if (line.startsWith('#EXTINF')){
+
+      if (line.startsWith('#EXTINF')) {
         const nameMatch = line.split(',');
-        const title = nameMatch.length > 1 ? nameMatch.slice(1).join(',').trim() : 'Canal';
+        const name = nameMatch.length > 1 ? nameMatch.slice(1).join(',').trim() : 'Canal';
         const logoMatch = line.match(/tvg-logo="([^"]*)"/i);
         const groupMatch = line.match(/group-title="([^"]*)"/i);
+
         current = {
-          name: title || 'Canal',
+          name: name || 'Canal',
           logo: logoMatch ? logoMatch[1] : '',
           group: groupMatch ? groupMatch[1] : ''
         };
-      } else if (!line.startsWith('#')){
-        if (current){
-          current.url = line;
-          result.push(current);
-          current = null;
-        } else {
-          result.push({ name: 'Canal ' + (result.length+1), url: line, logo:'', group:'' });
-        }
+      } else if (!line.startsWith('#') && current) {
+        result.push({
+          name: current.name,
+          url: line,
+          logo: current.logo,
+          group: current.group
+        });
+        current = null;
+      } else if (!line.startsWith('#') && !current) {
+        result.push({
+          name: `Canal ${result.length + 1}`,
+          url: line,
+          logo: '',
+          group: ''
+        });
       }
     }
+
     return result;
   }
 
-  function renderChannels(filter){
-    const f = (filter || '').toLowerCase().trim();
-    channelList.innerHTML = '';
-    if (!channels.length){
-      channelList.innerHTML = '<div class="empty-msg">La lista no contiene canales reproducibles.</div>';
-      return;
-    }
-    const filtered = channels
-      .map((c, i) => ({...c, i}))
-      .filter(c => !f || c.name.toLowerCase().includes(f) || (c.group||'').toLowerCase().includes(f));
-
-    if (!filtered.length){
-      channelList.innerHTML = '<div class="empty-msg">Sin resultados para esa búsqueda.</div>';
-      return;
-    }
-
-    for (const c of filtered){
-      const el = document.createElement('div');
-      el.className = 'channel' + (c.i === activeIndex ? ' active' : '');
-      const logoHtml = c.logo ? `<img class="logo" src="${escapeHtml(c.logo)}" onerror="this.style.visibility='hidden'">` : `<div class="logo"></div>`;
-      el.innerHTML = `
-        <span class="chno">${String(c.i+1).padStart(2,'0')}</span>
-        ${logoHtml}
-        <div class="meta">
-          <div class="cname">${escapeHtml(c.name)}</div>
-          ${c.group ? `<div class="cgroup">${escapeHtml(c.group)}</div>` : ''}
-        </div>
-      `;
-      el.addEventListener('click', () => playChannel(c.i));
-      channelList.appendChild(el);
-    }
+  function renderChannels() {
+    channelSelector.innerHTML = '';
+    channels.forEach((ch, i) => {
+      const div = document.createElement('div');
+      div.className = `channel-item ${i === currentIndex ? 'active' : ''}`;
+      div.textContent = `${i + 1}. ${ch.name}`;
+      div.onclick = () => {
+        currentIndex = i;
+        playChannel(i);
+        channelSelector.classList.remove('show');
+      };
+      channelSelector.appendChild(div);
+    });
   }
 
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
+  function setupHLS(url) {
+    if (hls) {
+      hls.destroy();
+    }
 
-  function playChannel(index){
-    const ch = channels[index];
-    if (!ch) return;
-    activeIndex = index;
-    placeholder.style.display = 'none';
-    video.style.display = 'block';
-    tunerNum.textContent = String(index+1).padStart(2,'0');
-    tunerName.textContent = ch.name;
-    setStatus(false);
-    tapOverlay.classList.remove('show');
+    const isNativeHLS = video.canPlayType('application/vnd.apple.mpegurl');
 
-    if (hls){ hls.destroy(); hls = null; }
-
-    const isNativeHls = video.canPlayType('application/vnd.apple.mpegurl');
-
-    if (isNativeHls){
-      video.src = ch.url;
-      attemptPlay();
-    } else if (window.Hls && Hls.isSupported()){
-      hls = new Hls();
-      hls.loadSource(ch.url);
+    if (isNativeHLS) {
+      // Safari/iOS soporta HLS nativo
+      video.src = url;
+      updateStatus('Cargado - Toca REPRODUCIR');
+      // No intentamos autoplay automáticamente
+    } else if (window.Hls && Hls.isSupported()) {
+      // Chrome/Firefox/Tesla usan hls.js
+      hls = new Hls(HLS_CONFIG);
+      hls.loadSource(url);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => attemptPlay());
-      hls.on(Hls.Events.ERROR, (evt, data) => {
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        updateStatus('Cargado - Toca REPRODUCIR');
+        // Esperamos a que el usuario haga click en REPRODUCIR
+        // Esto evita el bloqueo de autoplay de Tesla
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        console.error('HLS Error:', data);
         if (data.fatal) {
-          showError('Error reproduciendo el canal (' + (data.details || 'desconocido') + ')');
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              updateStatus('Error de red - reconectando...', true);
+              attemptReconnect();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              updateStatus('Error de media - recuperando', true);
+              hls.recoverMediaError();
+              break;
+            default:
+              updateStatus('Error fatal', true);
+              break;
+          }
         }
       });
-    } else {
-      showError('Este navegador no soporta HLS. No se puede reproducir este flujo aquí.');
-    }
 
-    renderChannels(searchInput.value);
+      hls.on(Hls.Events.BUFFER_APPENDING, () => {
+        reconnectAttempts = 0; // Reset si conseguimos buffer
+      });
+    } else {
+      showError('Navegador no soporta HLS');
+      updateStatus('Sin soporte HLS', true);
+    }
   }
 
-  video.addEventListener('playing', () => setStatus(true));
-  video.addEventListener('pause', () => setStatus(false));
-  video.addEventListener('error', () => {
-    const codes = {1:'ABORTED',2:'NETWORK',3:'DECODE',4:'SRC_NOT_SUPPORTED'};
-    const code = video.error ? video.error.code : null;
-    showError('No se pudo cargar el canal (' + (codes[code] || 'error desconocido') + ')');
-  });
+  function playChannel(index) {
+    if (index < 0 || index >= channels.length) return;
 
-  loadUrlBtn.addEventListener('click', async () => {
-    const url = m3uUrlInput.value.trim();
+    const channel = channels[index];
+    currentIndex = index;
+    channelName.textContent = channel.name;
+    updateStatus('Cargando...');
+    reconnectAttempts = 0;
+
+    setupHLS(channel.url);
+    renderChannels();
+  }
+
+  function attemptReconnect() {
+    if (reconnectAttempts >= MAX_RECONNECT) {
+      updateStatus('Reconexión fallida', true);
+      showError('No se puede reconectar. Intenta con otro canal.');
+      return;
+    }
+
+    reconnectAttempts++;
+    reconnecting.classList.add('show');
+    updateStatus(`Reconectando... (${reconnectAttempts}/${MAX_RECONNECT})`);
+
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = setTimeout(() => {
+      if (currentIndex >= 0) {
+        playChannel(currentIndex);
+      }
+      reconnecting.classList.remove('show');
+    }, 3000 * reconnectAttempts); // Backoff exponencial
+  }
+
+  // Event listeners
+  playBtn.onclick = () => {
+    // Primero activa sonido (ahora que hay interacción del usuario)
+    video.muted = false;
+    muteBtn.textContent = '🔊 SONIDO ON';
+
+    // Luego reproduce
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        updateStatus('Reproduciendo');
+      }).catch(e => {
+        console.warn('Play error:', e);
+        updateStatus('Error al reproducir', true);
+        showError('No se puede reproducir: ' + (e.name || e.message));
+      });
+    }
+  };
+
+  pauseBtn.onclick = () => {
+    video.pause();
+    updateStatus('Pausado');
+  };
+
+  muteBtn.onclick = () => {
+    video.muted = !video.muted;
+    muteBtn.textContent = video.muted ? '🔇 SONIDO OFF' : '🔊 SONIDO ON';
+    updateStatus(video.muted ? 'Sonido desactivado' : 'Sonido activado');
+  };
+
+  channelsBtn.onclick = () => {
+    channelSelector.classList.toggle('show');
+  };
+
+  loadBtn.onclick = () => {
+    loadPanel.style.display = loadPanel.style.display === 'none' ? 'block' : 'none';
+  };
+
+  loadUrlBtn.onclick = async () => {
+    const url = m3uUrl.value.trim();
     if (!url) return;
-    loadUrlBtn.textContent = '...';
+
+    loadUrlBtn.textContent = 'Cargando...';
     try {
       const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       channels = parseM3U(text);
-      activeIndex = -1;
-      renderChannels('');
+      renderChannels();
+      loadPanel.style.display = 'none';
+      updateStatus(`${channels.length} canales cargados`);
       if (channels.length > 0) playChannel(0);
-    } catch (e){
-      showError('No se pudo cargar la lista (' + e.message + ')');
+    } catch (e) {
+      showError(`Error: ${e.message}`);
+      updateStatus('Error cargando lista', true);
     } finally {
-      loadUrlBtn.textContent = 'Cargar';
+      loadUrlBtn.textContent = 'Cargar desde URL';
     }
-  });
+  };
 
-  m3uFile.addEventListener('change', () => {
-    const file = m3uFile.files[0];
+  m3uFile.onchange = (e) => {
+    const file = e.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = () => {
-      channels = parseM3U(reader.result);
-      activeIndex = -1;
-      renderChannels('');
+    reader.onload = (ev) => {
+      channels = parseM3U(ev.target.result);
+      renderChannels();
+      loadPanel.style.display = 'none';
+      updateStatus(`${channels.length} canales cargados`);
       if (channels.length > 0) playChannel(0);
     };
-    reader.onerror = () => showError('No se pudo leer el archivo.');
     reader.readAsText(file);
-  });
+  };
 
-  searchInput.addEventListener('input', () => renderChannels(searchInput.value));
+  // Drag & drop para archivo
+  document.ondragover = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
 
+  document.ondrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && (file.name.endsWith('.m3u') || file.name.endsWith('.m3u8'))) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        channels = parseM3U(ev.target.result);
+        renderChannels();
+        loadPanel.style.display = 'none';
+        updateStatus(`${channels.length} canales cargados`);
+        if (channels.length > 0) playChannel(0);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Manejar cambios de pestaña (Tesla puede pausar video al cambiar apps)
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && video.paused && video.src) {
-      attemptPlay();
+    if (document.visibilityState === 'visible' && !video.paused && video.src) {
+      video.play().catch(e => console.warn('Resume error:', e));
     }
   });
 
+  // Monitorear desconexiones
+  window.addEventListener('online', () => {
+    updateStatus('Conectado');
+    if (currentIndex >= 0 && !video.src) {
+      playChannel(currentIndex);
+    }
+  });
+
+  window.addEventListener('offline', () => {
+    updateStatus('Sin conexión', true);
+  });
+
+  // Auto-remove audio controls
+  video.controls = false;
+
+  updateStatus('Listo');
 })();
 </script>
 </body>
