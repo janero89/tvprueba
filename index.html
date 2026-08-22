@@ -3,22 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>IPTV Tesla COPILOTO</title>
+<title>IPTV Tesla ULTIMATE - BYPASS</title>
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; }
-  body {
-    background: #000;
-    color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    display: flex;
-    flex-direction: column;
-  }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
-  #videoContainer {
-    position: absolute;
+  #mainContainer {
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -27,13 +20,19 @@
     z-index: 1;
   }
 
+  /* VIDEO PRINCIPAL */
   #video {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     object-fit: contain;
+    background: #000;
   }
 
-  #renderCanvas {
+  /* CANVAS LAYER - Para renderizar manualmente */
+  #canvasRenderer {
     position: absolute;
     top: 0;
     left: 0;
@@ -41,9 +40,30 @@
     height: 100%;
     z-index: 2;
     display: none;
-    background: #000;
   }
 
+  /* WEBGL LAYER - Para renderización alternativa */
+  #webglCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    display: none;
+  }
+
+  /* IFRAME OCULTO - Reproducir en segundo plano */
+  #hiddenFrame {
+    position: fixed;
+    top: -9999px;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    z-index: -1;
+  }
+
+  /* UI CONTROLS */
   .control-bar {
     position: fixed;
     top: 0;
@@ -58,7 +78,7 @@
   }
 
   .header {
-    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
     padding: 20px;
     display: flex;
     justify-content: space-between;
@@ -69,6 +89,7 @@
   .channel-info {
     font-size: 28px;
     font-weight: bold;
+    color: #fff;
     text-shadow: 0 2px 8px rgba(0,0,0,0.9);
   }
 
@@ -77,6 +98,7 @@
     align-items: center;
     gap: 12px;
     font-size: 14px;
+    color: #fff;
   }
 
   .status-dot {
@@ -93,18 +115,13 @@
     box-shadow: 0 0 8px #f44336;
   }
 
-  .status-dot.driving {
-    background: #FF9800;
-    box-shadow: 0 0 8px #FF9800;
-  }
-
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
 
   .footer {
-    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.9) 100%);
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.95) 100%);
     padding: 20px;
     display: flex;
     gap: 10px;
@@ -124,7 +141,6 @@
     cursor: pointer;
     transition: all 0.2s;
     min-width: 110px;
-    text-align: center;
   }
 
   .btn:hover {
@@ -132,21 +148,10 @@
     border-color: rgba(255,255,255,0.5);
   }
 
-  .btn:active {
-    background: rgba(255,255,255,0.35);
-  }
-
-  .btn.play { background: #4CAF50; border-color: #4CAF50; font-size: 18px; }
-  .btn.play:hover { background: #66BB6A; }
-
+  .btn.play { background: #4CAF50; border-color: #4CAF50; }
   .btn.pause { background: #FF9800; border-color: #FF9800; }
-  .btn.pause:hover { background: #FFB74D; }
-
-  .btn.mute { background: #2196F3; border-color: #2196F3; }
-  .btn.mute:hover { background: #42A5F5; }
-
+  .btn.canvas { background: #2196F3; border-color: #2196F3; }
   .btn.channels { background: #673AB7; border-color: #673AB7; }
-  .btn.channels:hover { background: #7E57C2; }
 
   .channel-selector {
     position: fixed;
@@ -171,6 +176,7 @@
     border-bottom: 1px solid #222;
     cursor: pointer;
     font-size: 18px;
+    color: #fff;
     transition: background 0.2s;
   }
 
@@ -181,38 +187,14 @@
   .channel-item.active {
     background: rgba(76, 175, 80, 0.4);
     border-left: 5px solid #4CAF50;
-    padding-left: 19px;
     font-weight: bold;
-  }
-
-  .error-msg {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    background: rgba(244, 67, 54, 0.9);
-    padding: 16px 20px;
-    border-radius: 6px;
-    font-size: 14px;
-    max-width: 400px;
-    z-index: 300;
-    display: none;
-  }
-
-  .error-msg.show {
-    display: block;
-    animation: slideIn 0.3s;
-  }
-
-  @keyframes slideIn {
-    from { transform: translateX(-100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
   }
 
   .debug-log {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.9);
     color: #0f0;
     font-family: monospace;
     font-size: 11px;
@@ -234,126 +216,379 @@
     margin: 2px 0;
   }
 
-  .driving-indicator {
+  .warning {
     position: fixed;
-    top: 100px;
-    right: 20px;
-    background: rgba(255, 152, 0, 0.9);
-    padding: 12px 16px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: bold;
-    z-index: 200;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 193, 7, 0.95);
+    color: #000;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    z-index: 500;
     display: none;
-    border: 2px solid #FF9800;
+    max-width: 400px;
   }
 
-  .driving-indicator.show {
+  .warning.show {
     display: block;
   }
 </style>
 </head>
 <body>
 
-<div id="videoContainer">
-  <video id="video" playsinline muted autoplay crossorigin="anonymous"></video>
+<div id="mainContainer">
+  <video id="video" playsinline muted crossorigin="anonymous" style="display: none;"></video>
+  <canvas id="canvasRenderer"></canvas>
+  <canvas id="webglCanvas"></canvas>
+  <iframe id="hiddenFrame" src="about:blank"></iframe>
 </div>
-
-<canvas id="renderCanvas"></canvas>
 
 <div class="control-bar">
   <div class="header">
-    <div class="channel-info" id="channelName">IPTV COPILOTO</div>
+    <div class="channel-info" id="channelName">🚗 TESLA ULTIMATE</div>
     <div class="status">
       <div class="status-dot" id="statusDot"></div>
-      <div id="statusText">Listo</div>
+      <div id="statusText">Inicializando...</div>
     </div>
   </div>
 
   <div class="footer">
     <button class="btn play" id="playBtn">▶ PLAY</button>
     <button class="btn pause" id="pauseBtn">⏸ PAUSA</button>
-    <button class="btn mute" id="muteBtn">🔊 SONIDO</button>
+    <button class="btn canvas" id="canvasBtn">🎨 CANVAS</button>
     <button class="btn channels" id="channelsBtn">📻 CANALES</button>
-  </div>
+  </button>
 </div>
 
 <div class="channel-selector" id="channelSelector"></div>
-<div class="error-msg" id="errorMsg"></div>
-<div class="driving-indicator" id="drivingIndicator">🚗 MODO CONDUCCIÓN - Canvas Activo</div>
 <div class="debug-log" id="debugLog"></div>
+<div class="warning" id="warning"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
 <script>
 (function() {
   const video = document.getElementById('video');
-  const canvas = document.getElementById('renderCanvas');
-  const ctx = canvas && canvas.getContext('2d');
+  const canvasRenderer = document.getElementById('canvasRenderer');
+  const ctxCanvas = canvasRenderer.getContext('2d');
+  const webglCanvas = document.getElementById('webglCanvas');
+  const ctxWebGL = webglCanvas.getContext('webgl2') || webglCanvas.getContext('webgl');
   const channelName = document.getElementById('channelName');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const playBtn = document.getElementById('playBtn');
   const pauseBtn = document.getElementById('pauseBtn');
-  const muteBtn = document.getElementById('muteBtn');
+  const canvasBtn = document.getElementById('canvasBtn');
   const channelsBtn = document.getElementById('channelsBtn');
   const channelSelector = document.getElementById('channelSelector');
-  const errorMsg = document.getElementById('errorMsg');
   const debugLog = document.getElementById('debugLog');
-  const drivingIndicator = document.getElementById('drivingIndicator');
+  const warning = document.getElementById('warning');
 
   let debugMessages = [];
+  let isPlaying = false;
+  let useCanvasRenderer = false;
+  let useWebGLRenderer = false;
+  let hls = null;
+  let currentIndex = 0;
 
-  function debug(msg) {
-    const timestamp = new Date().toLocaleTimeString();
-    const logMsg = `[${timestamp}] ${msg}`;
-    debugMessages.push(msg);
-    if (debugMessages.length > 20) debugMessages.shift();
-
-    debugLog.innerHTML = debugMessages.map(m => `<div>${m}</div>`).join('');
-  }
-
-  function showError(msg, duration = 5000) {
-    errorMsg.textContent = msg;
-    errorMsg.classList.add('show');
-    debug(`❌ ${msg}`);
-    setTimeout(() => errorMsg.classList.remove('show'), duration);
-  }
-
-  function updateStatus(text, isError = false, isDriving = false) {
-    statusText.textContent = text;
-    statusDot.classList.toggle('error', isError);
-    statusDot.classList.toggle('driving', isDriving);
-    debug(`📊 ${text}`);
-  }
-
-  // LISTA FIJA DE CANALES
+  // CANALES
   const channels = [
     { name: 'Bufalo 5', url: 'https://bufaloweb.com/httpsCON/bufalo5/index.m3u8' },
     { name: 'RTVE 24H', url: 'https://rtvelivestream.akamaized.net/rtvesec/24h/24h_main_dvr.m3u8' }
   ];
 
-  let currentIndex = 0;
-  let hls = null;
-  let lastCurrentTime = 0;
-  let stallCount = 0;
-  let isPlaying = false;
-  let isDriving = false;
-  let useCanvasMode = false;
-  let animationFrameId = null;
-  let mainLoopId = null;
+  function debug(msg) {
+    const timestamp = new Date().toLocaleTimeString();
+    debugMessages.push(`[${timestamp}] ${msg}`);
+    if (debugMessages.length > 25) debugMessages.shift();
+    debugLog.innerHTML = debugMessages.map(m => `<div>${m}</div>`).join('');
+  }
 
-  const HLS_CONFIG = {
-    debug: false,
-    autoStartLoad: true,
-    startLevel: -1,
-    maxBufferLength: 60,
-    maxMaxBufferLength: 120,
-    fragLoadingMaxRetry: 10,
-    fragLoadingTimeOut: 30000,
-    manifestLoadingMaxRetry: 10,
-    manifestLoadingTimeOut: 30000,
+  function updateStatus(text, isError = false) {
+    statusText.textContent = text;
+    statusDot.classList.toggle('error', isError);
+    debug(`📊 ${text}`);
+  }
+
+  // ==================== MÉTODO 1: VIDEO HTML5 FORZADO ====================
+  function setupVideoElement(url) {
+    video.src = url;
+    video.muted = false;
+    video.volume = 1;
+    video.style.display = 'block';
+    updateStatus('Video HTML5 cargado');
+    debug('✅ Método 1: HTML5 Video activado');
+  }
+
+  // ==================== MÉTODO 2: CANVAS RENDERER ====================
+  function setupCanvasRenderer(url) {
+    useCanvasRenderer = true;
+    canvasRenderer.style.display = 'block';
+
+    // Crear video en el background
+    const bgVideo = document.createElement('video');
+    bgVideo.src = url;
+    bgVideo.muted = false;
+    bgVideo.volume = 1;
+    bgVideo.crossOrigin = 'anonymous';
+    bgVideo.style.display = 'none';
+    document.body.appendChild(bgVideo);
+
+    function renderFrame() {
+      try {
+        if (!bgVideo.paused && bgVideo.currentTime > 0) {
+          canvasRenderer.width = window.innerWidth;
+          canvasRenderer.height = window.innerHeight;
+          ctxCanvas.drawImage(bgVideo, 0, 0, canvasRenderer.width, canvasRenderer.height);
+        }
+        if (useCanvasRenderer) requestAnimationFrame(renderFrame);
+      } catch (e) {
+        debug(`❌ Canvas Error: ${e.message}`);
+      }
+    }
+
+    bgVideo.play().then(() => {
+      updateStatus('Canvas Renderer activo');
+      debug('✅ Método 2: Canvas Renderer activado');
+      renderFrame();
+    }).catch(e => {
+      debug(`⚠️ Canvas play error: ${e.message}`);
+      updateStatus('Error Canvas', true);
+    });
+
+    return bgVideo;
+  }
+
+  // ==================== MÉTODO 3: WEBGL RENDERER ====================
+  function setupWebGLRenderer(url) {
+    useWebGLRenderer = true;
+    webglCanvas.style.display = 'block';
+
+    const bgVideo = document.createElement('video');
+    bgVideo.src = url;
+    bgVideo.muted = false;
+    bgVideo.volume = 1;
+    bgVideo.crossOrigin = 'anonymous';
+    bgVideo.style.display = 'none';
+    document.body.appendChild(bgVideo);
+
+    if (!ctxWebGL) {
+      debug('⚠️ WebGL no soportado');
+      return null;
+    }
+
+    const vertexShader = `
+      attribute vec4 position;
+      varying vec2 texCoord;
+      void main() {
+        gl_Position = position;
+        texCoord = (position.xy + 1.0) / 2.0;
+      }
+    `;
+
+    const fragmentShader = `
+      precision mediump float;
+      uniform sampler2D u_texture;
+      varying vec2 texCoord;
+      void main() {
+        gl_FragColor = texture2D(u_texture, texCoord);
+      }
+    `;
+
+    function compileShader(source, type) {
+      const shader = ctxWebGL.createShader(type);
+      ctxWebGL.shaderSource(shader, source);
+      ctxWebGL.compileShader(shader);
+      return shader;
+    }
+
+    const program = ctxWebGL.createProgram();
+    ctxWebGL.attachShader(program, compileShader(vertexShader, ctxWebGL.VERTEX_SHADER));
+    ctxWebGL.attachShader(program, compileShader(fragmentShader, ctxWebGL.FRAGMENT_SHADER));
+    ctxWebGL.linkProgram(program);
+    ctxWebGL.useProgram(program);
+
+    function renderWebGL() {
+      try {
+        if (!bgVideo.paused && bgVideo.currentTime > 0) {
+          webglCanvas.width = window.innerWidth;
+          webglCanvas.height = window.innerHeight;
+
+          const texture = ctxWebGL.createTexture();
+          ctxWebGL.bindTexture(ctxWebGL.TEXTURE_2D, texture);
+          ctxWebGL.texImage2D(ctxWebGL.TEXTURE_2D, 0, ctxWebGL.RGBA, ctxWebGL.RGBA, ctxWebGL.UNSIGNED_BYTE, bgVideo);
+
+          ctxWebGL.drawArrays(ctxWebGL.TRIANGLE_STRIP, 0, 4);
+        }
+        if (useWebGLRenderer) requestAnimationFrame(renderWebGL);
+      } catch (e) {
+        debug(`❌ WebGL Error: ${e.message}`);
+      }
+    }
+
+    bgVideo.play().then(() => {
+      updateStatus('WebGL Renderer activo');
+      debug('✅ Método 3: WebGL Renderer activado');
+      renderWebGL();
+    }).catch(e => {
+      debug(`⚠️ WebGL play error: ${e.message}`);
+      updateStatus('Error WebGL', true);
+    });
+
+    return bgVideo;
+  }
+
+  // ==================== MÉTODO 4: DETECCIÓN DE RESTRICCIONES ====================
+  function detectAndBypass() {
+    debug('🔍 Detectando restricciones de Tesla...');
+
+    // Intentar detectar si estamos en un Tesla
+    const isTesla = /Tesla|Tesla Browser|Tesla Model|EVMobi|X11|Linux ARM/.test(navigator.userAgent);
+    const isMoving = navigator.geolocation ? '?' : 'N/A';
+
+    debug(`🚗 ¿Tesla detectado?: ${isTesla}`);
+    debug(`📍 ¿En movimiento?: ${isMoving}`);
+
+    // Intentar request fullscreen agresivamente
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+
+    // Intentar Picture in Picture
+    if (video.requestPictureInPicture) {
+      video.requestPictureInPicture().catch(() => {});
+    }
+
+    // Solicitar permisos de presentación
+    if (navigator.presentation && navigator.presentation.request) {
+      navigator.presentation.request(['presentation/html5']).catch(() => {});
+    }
+  }
+
+  // ==================== ANTI-PAUSE ULTRA AGRESIVO ====================
+  function masterAntiPauseLoop() {
+    if (!isPlaying) return;
+
+    // Forzar reproducción en video
+    if (video.src && video.paused) {
+      video.muted = false;
+      video.play().catch(() => {});
+    }
+
+    // Forzar reproducción en canvas video
+    const canvasVideos = document.querySelectorAll('video[style*="display: none"]');
+    canvasVideos.forEach(v => {
+      if (v.paused) {
+        v.muted = false;
+        v.play().catch(() => {});
+      }
+    });
+
+    // Evitar que se ponga en fullscreen accidentalmente
+    if (document.fullscreenElement === null && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+
+    // Reintento agresivo
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        if (video.src) video.play().catch(() => {});
+        if (canvasVideos.length > 0) {
+          canvasVideos[0].muted = false;
+          canvasVideos[0].play().catch(() => {});
+        }
+      }, i * 50);
+    }
+
+    requestAnimationFrame(masterAntiPauseLoop);
+  }
+
+  // ==================== INTERVALOS DE SEGURIDAD ====================
+  setInterval(() => {
+    if (isPlaying) {
+      // Asegurar volumen
+      if (video.src) {
+        video.muted = false;
+        video.volume = 1;
+      }
+
+      // Asegurar que no está pausado
+      const allVideos = document.querySelectorAll('video');
+      allVideos.forEach(v => {
+        if (v.paused && v.src) {
+          v.play().catch(() => {});
+        }
+      });
+
+      debug('🔄 Control de seguridad ejecutado');
+    }
+  }, 200);
+
+  // ==================== EVENTOS ====================
+  video.addEventListener('pause', () => {
+    if (isPlaying) {
+      debug('⚠️ PAUSE detectado - Reintentando...');
+      setTimeout(() => {
+        video.muted = false;
+        video.play().catch(() => {});
+      }, 100);
+    }
+  }, true);
+
+  // ==================== BOTONES ====================
+  playBtn.onclick = () => {
+    isPlaying = true;
+    detectAndBypass();
+
+    const channel = channels[currentIndex];
+    setupVideoElement(channel.url);
+
+    video.muted = false;
+    video.play().then(() => {
+      updateStatus('🎬 REPRODUCIENDO - MÉTODO HTML5');
+      masterAntiPauseLoop();
+      debug('✅ Reproducción iniciada');
+    }).catch(e => {
+      debug(`❌ Error HTML5: ${e.message}`);
+      updateStatus('Intentando Canvas...', true);
+
+      // Fallback a Canvas
+      setTimeout(() => {
+        setupCanvasRenderer(channel.url);
+      }, 500);
+    });
   };
 
+  pauseBtn.onclick = () => {
+    isPlaying = false;
+    video.pause();
+    useCanvasRenderer = false;
+    useWebGLRenderer = false;
+    canvasRenderer.style.display = 'none';
+    webglCanvas.style.display = 'none';
+    updateStatus('⏸ Pausado');
+  };
+
+  canvasBtn.onclick = () => {
+    if (isPlaying) {
+      const channel = channels[currentIndex];
+      useCanvasRenderer = !useCanvasRenderer;
+
+      if (useCanvasRenderer) {
+        canvasRenderer.style.display = 'block';
+        setupCanvasRenderer(channel.url);
+      } else {
+        canvasRenderer.style.display = 'none';
+      }
+    }
+  };
+
+  channelsBtn.onclick = () => {
+    channelSelector.classList.toggle('show');
+  };
+
+  // Render canales
   function renderChannels() {
     channelSelector.innerHTML = '';
     channels.forEach((ch, i) => {
@@ -362,255 +597,29 @@
       div.textContent = `${i + 1}. ${ch.name}`;
       div.onclick = () => {
         currentIndex = i;
-        playChannel(i);
+        channelName.textContent = ch.name;
         channelSelector.classList.remove('show');
+        if (isPlaying) {
+          playBtn.click();
+        }
       };
       channelSelector.appendChild(div);
     });
   }
 
-  function setupHLS(url) {
-    if (hls) hls.destroy();
-
-    const isNativeHLS = video.canPlayType('application/vnd.apple.mpegurl');
-
-    if (isNativeHLS) {
-      video.src = url;
-      updateStatus('Cargado');
-    } else if (window.Hls && Hls.isSupported()) {
-      hls = new Hls(HLS_CONFIG);
-      hls.loadSource(url);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        updateStatus('Cargado');
-      });
-
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          updateStatus('Error', true);
-          showError('Error en stream');
-        }
-      });
-    }
-  }
-
-  function playChannel(index) {
-    currentIndex = index;
-    const channel = channels[index];
-    channelName.textContent = channel.name;
-    updateStatus('Cargando...');
-    setupHLS(channel.url);
-    renderChannels();
-  }
-
-  // ==================== DETECCIÓN DE MODO CONDUCCIÓN ====================
-
-  function detectDrivingMode() {
-    debug('✅ Canvas Mode Permanente - Sin detección de conducción');
-    // Deshabilitado - Canvas siempre activo
-  }
-
-  // ==================== CANVAS RENDERING MODE ====================
-
-  function switchToCanvasMode() {
-    if (useCanvasMode) return;
-
-    useCanvasMode = true;
-    debug('📺 Iniciando renderizado en Canvas');
-
-    // Ocultar video elemento
-    document.getElementById('videoContainer').style.display = 'none';
-
-    // Mostrar canvas
-    canvas.style.display = 'block';
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    // Audio sigue funcionando desde el video (que está oculto pero reproduce)
-    video.muted = false;
-    video.volume = 1;
-
-    // Forzar play del video oculto
-    setTimeout(() => {
-      video.play().catch((err) => {
-        debug('⚠️ Error en play: ' + err.message);
-      });
-    }, 50);
-
-    // Iniciar loop de renderizado
-    canvasRenderLoop();
-  }
-
-  function switchToVideoMode() {
-    useCanvasMode = false;
-    debug('📺 Volviendo a modo video');
-
-    // Mostrar video
-    document.getElementById('videoContainer').style.display = 'block';
-    canvas.style.display = 'none';
-
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = null;
-    }
-  }
-
-  function canvasRenderLoop() {
-    if (!useCanvasMode) return;
-
-    try {
-      // Limpiar canvas
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Dibujar frame actual del video en el canvas
-      if (!video.paused && video.readyState >= 2) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      }
-
-      // Mostrar info en canvas
-      ctx.fillStyle = 'rgba(76, 175, 80, 0.8)';
-      ctx.font = 'bold 16px Arial';
-      ctx.fillText(`▶ ${video.currentTime.toFixed(1)}s`, 20, 40);
-
-      // Si video está pausado en canvas, intentar reproducir
-      if (video.paused) {
-        video.play().catch(() => {});
-      }
-
-      animationFrameId = requestAnimationFrame(canvasRenderLoop);
-    } catch (e) {
-      debug(`❌ Canvas Error: ${e.message}`);
-    }
-  }
-
-  // ==================== FORZAR PLAY AGRESIVO ====================
-
-  function aggressivePlay() {
-    if (!isPlaying || !video.src) return;
-
-    debug('🔄 Aggressive play iniciado (10 intentos)');
-
-    // Intentos múltiples de play
-    for (let i = 0; i < 10; i++) {
-      setTimeout(() => {
-        video.muted = false;
-        video.volume = 1;
-        video.play().catch(() => {});
-      }, i * 50);
-    }
-  }
-
-  // ==================== LOOP PRINCIPAL ====================
-
-  function startMainLoop() {
-    if (mainLoopId) clearInterval(mainLoopId);
-
-    mainLoopId = setInterval(() => {
-      if (isPlaying) {
-        // Si está en modo conducción y canvas activo, asegurarse que video siga reproduciéndose
-        if (isDriving && useCanvasMode && video.paused) {
-          debug('🔧 Reintentando play en modo canvas...');
-          video.muted = false;
-          video.volume = 1;
-          video.play().catch(() => {});
-        }
-
-        // Detectar stalls
-        if (video.currentTime === lastCurrentTime && video.duration > 0 && !video.paused) {
-          stallCount++;
-          if (stallCount > 3) {
-            debug(`⚡ Stall detectado (${stallCount}x), saltando...`);
-            video.currentTime = Math.min(video.currentTime + 1, video.duration - 1);
-            video.play().catch(() => {});
-            stallCount = 0;
-          }
-        } else {
-          stallCount = 0;
-        }
-
-        lastCurrentTime = video.currentTime;
-      }
-    }, 100);
-  }
-
-  // ==================== EVENT LISTENERS ====================
-
-  playBtn.onclick = () => {
-    isPlaying = true;
-    video.muted = false;
-    muteBtn.textContent = '🔊 SONIDO ON';
-
-    updateStatus('🎬 REPRODUCIENDO EN CANVAS');
-    debug('✅ Playback iniciado - Modo Canvas Permanente');
-
-    // Activar Canvas inmediatamente
-    switchToCanvasMode();
-
-    aggressivePlay();
-    startMainLoop();
-
-    // Intentar fullscreen
-    if (video.requestFullscreen) {
-      video.requestFullscreen().catch(() => {});
-    }
-  };
-
-  pauseBtn.onclick = () => {
-    isPlaying = false;
-    useCanvasMode = false;
-    isDriving = false;
-
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    if (mainLoopId) clearInterval(mainLoopId);
-
-    document.getElementById('videoContainer').style.display = 'none';
-    canvas.style.display = 'none';
-
-    video.pause();
-    updateStatus('Pausado');
-    drivingIndicator.classList.remove('show');
-  };
-
-  muteBtn.onclick = () => {
-    video.muted = !video.muted;
-    muteBtn.textContent = video.muted ? '🔇 SILENCIO' : '🔊 SONIDO';
-  };
-
-  channelsBtn.onclick = () => {
-    channelSelector.classList.toggle('show');
-  };
-
-  // Toggle debug log
+  // Toggle debug
   document.addEventListener('keydown', (e) => {
     if (e.key === 'd' || e.key === 'D') {
       debugLog.classList.toggle('show');
     }
   });
 
-  // Resize canvas on window resize
-  window.addEventListener('resize', () => {
-    if (useCanvasMode) {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-  });
-
-  // Limpiar resources al salir
-  window.addEventListener('beforeunload', () => {
-    if (hls) hls.destroy();
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    if (mainLoopId) clearInterval(mainLoopId);
-  });
-
-  // ==================== INICIALIZAR ====================
-
+  // Inicializar
   renderChannels();
-  playChannel(0);
-  detectDrivingMode();
   updateStatus('Listo - Presiona PLAY');
-  debug(`🚀 Sistema COPILOTO TESLA cargado`);
+  debug('🚀 Sistema ULTIMATE iniciado');
+  debug('Presiona "D" para ver debug log');
+  debug('Métodos activos: HTML5, Canvas, WebGL, Fullscreen, PiP');
 })();
 </script>
 </body>
